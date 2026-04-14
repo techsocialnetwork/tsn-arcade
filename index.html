@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TSN Arcade</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+            overflow-x: hidden;
+        }
+        .container {
+            text-align: center;
+            z-index: 10;
+            max-width: 1400px;
+        }
+        h1 {
+            font-size: 4rem;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: none;
+            filter: drop-shadow(0 0 30px rgba(102, 126, 234, 0.5));
+            letter-spacing: 8px;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        @keyframes glow {
+            from { filter: drop-shadow(0 0 20px rgba(102, 126, 234, 0.5)); }
+            to { filter: drop-shadow(0 0 40px rgba(240, 147, 251, 0.8)); }
+        }
+        .subtitle {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 1.2rem;
+            letter-spacing: 4px;
+            margin-bottom: 50px;
+            text-transform: uppercase;
+        }
+        .category {
+            margin-bottom: 40px;
+        }
+        .category-title {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.9rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            text-align: left;
+            padding-left: 10px;
+            border-left: 3px solid var(--cat-color, #667eea);
+        }
+        .games {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 25px;
+            justify-items: center;
+        }
+        .game-card {
+            width: 220px;
+            height: 280px;
+            background: linear-gradient(145deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 100%);
+            border-radius: 20px;
+            padding: 25px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .game-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, var(--card-color1) 0%, var(--card-color2) 100%);
+            opacity: 0;
+            transition: opacity 0.4s;
+            z-index: -1;
+            border-radius: 20px;
+        }
+        .game-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.4),
+                0 0 40px var(--glow-color);
+        }
+        .game-card:hover::before {
+            opacity: 0.15;
+        }
+        
+        /* Game colors */
+        .game-card.snake { --card-color1: #00ff88; --card-color2: #00cc6a; --glow-color: rgba(0, 255, 136, 0.3); }
+        .game-card.solitaire { --card-color1: #ff6b6b; --card-color2: #c92a2a; --glow-color: rgba(255, 107, 107, 0.3); }
+        .game-card.tetris { --card-color1: #ff00ff; --card-color2: #cc00cc; --glow-color: rgba(255, 0, 255, 0.3); }
+        .game-card.game-2048 { --card-color1: #f2b179; --card-color2: #d9944a; --glow-color: rgba(242, 177, 121, 0.3); }
+        .game-card.pong { --card-color1: #00d4ff; --card-color2: #0099cc; --glow-color: rgba(0, 212, 255, 0.3); }
+        .game-card.breakout { --card-color1: #ff9500; --card-color2: #cc7700; --glow-color: rgba(255, 149, 0, 0.3); }
+        .game-card.asteroids { --card-color1: #9999ff; --card-color2: #6666cc; --glow-color: rgba(153, 153, 255, 0.3); }
+        .game-card.space-invaders { --card-color1: #00ff00; --card-color2: #00cc00; --glow-color: rgba(0, 255, 0, 0.3); }
+        .game-card.minesweeper { --card-color1: #808080; --card-color2: #606060; --glow-color: rgba(128, 128, 128, 0.3); }
+        .game-card.roguelike { --card-color1: #ff4444; --card-color2: #aa2222; --glow-color: rgba(255, 68, 68, 0.4); }
+        .game-card.civ { --card-color1: #ffd700; --card-color2: #cc9900; --glow-color: rgba(255, 215, 0, 0.4); }
+        
+        .game-icon {
+            font-size: 4rem;
+            margin-bottom: 15px;
+            filter: drop-shadow(0 0 15px var(--glow-color));
+            transition: transform 0.3s;
+        }
+        .game-card:hover .game-icon {
+            transform: scale(1.15);
+        }
+        .game-title {
+            color: white;
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+            letter-spacing: 2px;
+        }
+        .game-desc {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.8rem;
+            line-height: 1.4;
+            margin-bottom: 15px;
+            flex-grow: 1;
+        }
+        .play-btn {
+            margin-top: auto;
+            background: linear-gradient(135deg, var(--card-color1) 0%, var(--card-color2) 100%);
+            border: none;
+            color: #0a0a0a;
+            padding: 10px 28px;
+            border-radius: 16px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            pointer-events: none;
+            opacity: 0.8;
+            transition: all 0.3s;
+        }
+        .game-card:hover .play-btn {
+            opacity: 1;
+            box-shadow: 0 0 25px var(--glow-color);
+        }
+        
+        /* Floating particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        /* Scanlines effect */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.1) 0px,
+                rgba(0, 0, 0, 0.1) 1px,
+                transparent 1px,
+                transparent 3px
+            );
+            opacity: 0.3;
+        }
+        
+        /* CRT curve effect */
+        .crt {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 99;
+            background: radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.3) 100%);
+        }
+        
+        .footer {
+            margin-top: 40px;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+        }
+        
+        .game-count {
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+        }
+        .game-count span {
+            color: #667eea;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <canvas class="particles" id="particles"></canvas>
+    <div class="scanlines"></div>
+    <div class="crt"></div>
+    
+    <div class="container">
+        <h1>TSN ARCADE</h1>
+        <p class="subtitle">Select Your Game</p>
+        <p class="game-count"><span>11</span> Games Available</p>
+        
+        <!-- Featured Games -->
+        <div class="category" style="--cat-color: #ffd700;">
+            <div class="category-title">⭐ Featured</div>
+            <div class="games">
+                <a href="civ.html" class="game-card civ">
+                    <div class="game-icon">🏛️</div>
+                    <div class="game-title">HEGEMONY</div>
+                    <p class="game-desc">4X Strategy! Build empires, research tech, conquer the world!</p>
+                    <div class="play-btn">Play</div>
+                </a>
+                <a href="roguelike.html" class="game-card roguelike">
+                    <div class="game-icon">🗡️</div>
+                    <div class="game-title">SHADOW DUNGEON</div>
+                    <p class="game-desc">Roguelike action! Procedural dungeons, permadeath, boss fights!</p>
+                    <div class="play-btn">Play</div>
+                </a>
+            </div>
+        </div>
+        
+        <!-- Classic Arcade -->
+        <div class="category" style="--cat-color: #00ff00;">
+            <div class="category-title">Classic Arcade</div>
+            <div class="games">
+                <a href="snake.html" class="game-card snake">
+                    <div class="game-icon">🐍</div>
+                    <div class="game-title">SNAKE</div>
+                    <p class="game-desc">Grow your snake, avoid walls. Speed increases as you eat!</p>
+                    <div class="play-btn">Play</div>
+                </a>
+                
+                <a href="pong.html" class="game-card pong">
+                    <div class="game-icon">🏓</div>
+                    <div class="game-title">PONG</div>
+                    <p class="game-desc">The original arcade classic. First to 11 wins!</p>
+                    <div class="play-btn">Play</div>
+                </a>
+                
+                <a href="breakout.html" class="game-card breakout">
+                    <div class="game-icon">🧱</div>
+                    <div class="game-title">BREAKOUT</div>
+                    <p class="game-desc">Smash all the bricks with your paddle and ball!</p>
+                    <div class="play-btn">Play</div>
+                </a>
+                
+                <a href="asteroids.html" class="game-card asteroids">
+                    <div class="game-icon">☄️</div>
+                    <div class="game-title">ASTEROIDS</div>
+                    <p class="game-desc">Navigate through space, destroy asteroids to survive!</p>
+                    <div class="play-btn">Play</div>
+                </a>
+                
+                <a href="space-invaders.html" class="game-card space-invaders">
+                    <div class="game-icon">👾</div>
+                    <div class="game-title">INVADERS</div>
+                    <p class="game-desc">Defend Earth from waves of alien invaders!</p>
+                    <div class="play-btn">Play</div>
+                </a>
+            </div>
+        </div>
+        
+        <!-- Puzzle Games -->
+        <div class="category" style="--cat-color: #f2b179;">
+            <div class="category-title">Puzzle Games</div>
+            <div class="games">
+                <a href="tetris.html" class="game-card tetris">
+                    <div class="game-icon">🎮</div>
+                    <div class="game-title">TETRIS</div>
+                    <p class="game-desc">Stack falling blocks, clear lines, don't top out!</p>
+                    <div class="play-btn">Play</div>
+                </a>
+                
+                <a href="2048.html" class="game-card game-2048">
+                    <div class="game-icon">🔢</div>
+                    <div class="game-title">2048</div>
+                    <p class="game-desc">Slide and merge tiles to reach the legendary 2048!</p>
+                    <div class="play-btn">Play</div>
+                </a>
+                
+                <a href="minesweeper.html" class="game-card minesweeper">
+                    <div class="game-icon">💣</div>
+                    <div class="game-title">MINESWEEPER</div>
+                    <p class="game-desc">Clear the board without hitting any mines!</p>
+                    <div class="play-btn">Play</div>
+                </a>
+            </div>
+        </div>
+        
+        <!-- Card Games -->
+        <div class="category" style="--cat-color: #ff6b6b;">
+            <div class="category-title">Card Games</div>
+            <div class="games">
+                <a href="solitaire.html" class="game-card solitaire">
+                    <div class="game-icon">🃏</div>
+                    <div class="game-title">SOLITAIRE</div>
+                    <p class="game-desc">Classic Klondike with drag & drop controls.</p>
+                    <div class="play-btn">Play</div>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">PRESS START TO PLAY • TSN ARCADE 2026</div>
+    
+    <script>
+        // Particle background
+        const canvas = document.getElementById('particles');
+        const ctx = canvas.getContext('2d');
+        
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+        
+        const particles = [];
+        const colors = ['#667eea', '#764ba2', '#f093fb', '#00ff88', '#ff6b6b', '#00d4ff', '#f2b179'];
+        
+        for (let i = 0; i < 80; i++) {
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                vx: (Math.random() - 0.5) * 0.5,
+                vy: (Math.random() - 0.5) * 0.5,
+                size: Math.random() * 3 + 1,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                alpha: Math.random() * 0.5 + 0.2
+            });
+        }
+        
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            particles.forEach((p, i) => {
+                p.x += p.vx;
+                p.y += p.vy;
+                
+                if (p.x < 0) p.x = canvas.width;
+                if (p.x > canvas.width) p.x = 0;
+                if (p.y < 0) p.y = canvas.height;
+                if (p.y > canvas.height) p.y = 0;
+                
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.alpha;
+                ctx.fill();
+                
+                // Draw connections
+                particles.forEach((p2, j) => {
+                    if (i === j) return;
+                    const dx = p.x - p2.x;
+                    const dy = p.y - p2.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < 100) {
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.strokeStyle = p.color;
+                        ctx.globalAlpha = (1 - dist / 100) * 0.12;
+                        ctx.stroke();
+                    }
+                });
+            });
+            
+            ctx.globalAlpha = 1;
+            requestAnimationFrame(animate);
+        }
+        animate();
+        
+        // Add hover sound effect
+        const cards = document.querySelectorAll('.game-card');
+        cards.forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                try {
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(500, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(700, ctx.currentTime + 0.08);
+                    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.08);
+                } catch(e) {}
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HEGEMONY</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1a1a2e;
+            font-family: 'Segoe UI', sans-serif;
+            overflow: hidden;
+            color: #fff;
+        }
+        #gameContainer {
+            display: flex;
+            height: 100vh;
+        }
+        #mapContainer {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        #map {
+            position: absolute;
+            cursor: grab;
+        }
+        #map:active { cursor: grabbing; }
+        #sidebar {
+            width: 320px;
+            background: linear-gradient(180deg, #16213e 0%, #1a1a2e 100%);
+            border-left: 2px solid #333;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .panel {
+            padding: 15px;
+            border-bottom: 1px solid #333;
+        }
+        .panel-title {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+        #turnInfo {
+            background: #0f0f1a;
+            text-align: center;
+            padding: 10px;
+        }
+        #turnInfo h2 { color: #ffd700; font-size: 18px; }
+        #turnInfo .year { color: #888; font-size: 14px; }
+        .resource-bar {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .resource {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+        }
+        .resource-icon { font-size: 16px; }
+        .resource-val { color: #4ecdc4; font-weight: bold; }
+        #selectedInfo {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 150px;
+        }
+        #unitInfo, #cityInfo { display: none; }
+        .info-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .info-name {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .info-type {
+            color: #888;
+            font-size: 12px;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #222;
+        }
+        .action-btn {
+            background: linear-gradient(180deg, #4ecdc4 0%, #3aa89f 100%);
+            border: none;
+            color: #000;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 3px;
+            font-size: 12px;
+        }
+        .action-btn:hover { filter: brightness(1.1); }
+        .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .action-btn.attack { background: linear-gradient(180deg, #ff6b6b 0%, #c92a2a 100%); color: #fff; }
+        .action-btn.build { background: linear-gradient(180deg, #ffd700 0%, #cc9900 100%); }
+        #actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        #endTurnBtn {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            background: linear-gradient(180deg, #667eea 0%, #4a5dc9 100%);
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        #endTurnBtn:hover { filter: brightness(1.1); }
+        #minimap {
+            width: 100%;
+            height: 150px;
+            background: #111;
+        }
+        #notifications {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+        }
+        .notification {
+            background: rgba(0,0,0,0.8);
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            border-left: 3px solid #4ecdc4;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        #techTree, #diplomacy, #cityBuild {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #16213e;
+            border: 2px solid #444;
+            border-radius: 8px;
+            padding: 20px;
+            z-index: 200;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #333;
+        }
+        .modal-title { font-size: 24px; color: #ffd700; }
+        .close-btn {
+            background: #ff4444;
+            border: none;
+            color: #fff;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        .tech-era {
+            margin-bottom: 20px;
+        }
+        .era-title {
+            color: #4ecdc4;
+            font-size: 16px;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #333;
+        }
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+        .tech-item {
+            background: #222;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            text-align: center;
+            font-size: 12px;
+        }
+        .tech-item:hover { border-color: #4ecdc4; }
+        .tech-item.researched { background: #2a4a2a; border-color: #4a4; }
+        .tech-item.available { border-color: #ffd700; }
+        .tech-item.locked { opacity: 0.5; cursor: not-allowed; }
+        .tech-item .cost { color: #888; font-size: 10px; }
+        .civ-card {
+            background: #222;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .civ-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .civ-name { font-size: 18px; }
+        .civ-attitude {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .attitude-friendly { background: #2a4a2a; color: #4a4; }
+        .attitude-neutral { background: #4a4a2a; color: #aa4; }
+        .attitude-hostile { background: #4a2a2a; color: #a44; }
+        .diplo-actions { display: flex; gap: 10px; margin-top: 10px; }
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 300;
+        }
+        #overlay.hidden { display: none; }
+        #overlay h1 {
+            font-size: 64px;
+            background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+        }
+        #overlay p { color: #888; margin: 10px 0; font-size: 18px; }
+        #overlay button {
+            margin-top: 30px;
+            padding: 15px 50px;
+            font-size: 20px;
+            background: linear-gradient(180deg, #ffd700 0%, #cc9900 100%);
+            border: none;
+            color: #000;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        #topBar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 320px;
+            height: 40px;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 15px;
+            z-index: 50;
+        }
+        .top-btn {
+            background: transparent;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 5px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .top-btn:hover { background: #333; }
+        #victoryModal {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
+            border: 3px solid #ffd700;
+            border-radius: 12px;
+            padding: 40px;
+            z-index: 400;
+            text-align: center;
+        }
+        #victoryModal h1 { color: #ffd700; font-size: 48px; margin-bottom: 20px; }
+        #victoryModal p { font-size: 18px; margin: 10px 0; }
+        .back-link {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            color: rgba(255,255,255,0.3);
+            text-decoration: none;
+            font-size: 12px;
+            z-index: 10;
+        }
+        .build-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #222;
+            margin: 5px 0;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .build-item:hover { background: #333; }
+        .build-item.disabled { opacity: 0.5; cursor: not-allowed; }
+        .build-cost { color: #888; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div id="overlay">
+        <h1>HEGEMONY</h1>
+        <p>Build an empire to stand the test of time</p>
+        <p style="color:#666; font-size:14px;">4X Strategy • Hex Map • AI Civilizations • Tech Tree • Diplomacy</p>
+        <button onclick="startGame()">BEGIN YOUR LEGACY</button>
+    </div>
+
+    <div id="gameContainer">
+        <div id="mapContainer">
+            <div id="topBar">
+                <div>
+                    <button class="top-btn" onclick="openTechTree()">🔬 Tech Tree</button>
+                    <button class="top-btn" onclick="openDiplomacy()">🤝 Diplomacy</button>
+                </div>
+                <div id="researchProgress"></div>
+            </div>
+            <canvas id="map"></canvas>
+            <div id="notifications"></div>
+        </div>
+        <div id="sidebar">
+            <div id="turnInfo" class="panel">
+                <h2 id="civName">Your Empire</h2>
+                <div class="year">Turn <span id="turnNum">1</span> • <span id="yearDisplay">4000 BC</span></div>
+            </div>
+            <div class="panel">
+                <div class="panel-title">Resources</div>
+                <div class="resource-bar">
+                    <div class="resource"><span class="resource-icon">🪙</span><span class="resource-val" id="goldVal">0</span></div>
+                    <div class="resource"><span class="resource-icon">🔬</span><span class="resource-val" id="scienceVal">0</span></div>
+                    <div class="resource"><span class="resource-icon">🎭</span><span class="resource-val" id="cultureVal">0</span></div>
+                    <div class="resource"><span class="resource-icon">⚔️</span><span class="resource-val" id="militaryVal">0</span></div>
+                </div>
+            </div>
+            <div id="selectedInfo" class="panel">
+                <div class="panel-title">Selected</div>
+                <div id="nothingSelected">Click on a unit or city to select it</div>
+                <div id="unitInfo">
+                    <div class="info-header">
+                        <div>
+                            <div class="info-name" id="unitName">Warrior</div>
+                            <div class="info-type" id="unitType">Military Unit</div>
+                        </div>
+                    </div>
+                    <div class="stat-row"><span>Health</span><span id="unitHealth">100/100</span></div>
+                    <div class="stat-row"><span>Movement</span><span id="unitMoves">2/2</span></div>
+                    <div class="stat-row"><span>Strength</span><span id="unitStrength">10</span></div>
+                    <div id="actions"></div>
+                </div>
+                <div id="cityInfo">
+                    <div class="info-header">
+                        <div>
+                            <div class="info-name" id="cityName">City</div>
+                            <div class="info-type">Population: <span id="cityPop">1</span></div>
+                        </div>
+                    </div>
+                    <div class="stat-row"><span>Food</span><span id="cityFood">0/10</span></div>
+                    <div class="stat-row"><span>Production</span><span id="cityProd">0</span></div>
+                    <div class="stat-row"><span>Building</span><span id="cityBuilding">Nothing</span></div>
+                    <div id="actions"></div>
+                </div>
+            </div>
+            <canvas id="minimap"></canvas>
+            <button id="endTurnBtn" onclick="endTurn()">End Turn</button>
+        </div>
+    </div>
+
+    <div id="techTree">
+        <div class="modal-header">
+            <span class="modal-title">🔬 Technology</span>
+            <button class="close-btn" onclick="closeTechTree()">×</button>
+        </div>
+        <div id="techContent"></div>
+    </div>
+
+    <div id="diplomacy">
+        <div class="modal-header">
+            <span class="modal-title">🤝 Diplomacy</span>
+            <button class="close-btn" onclick="closeDiplomacy()">×</button>
+        </div>
+        <div id="diploContent"></div>
+    </div>
+
+    <div id="cityBuild">
+        <div class="modal-header">
+            <span class="modal-title">🏗️ Production</span>
+            <button class="close-btn" onclick="closeCityBuild()">×</button>
+        </div>
+        <div id="buildContent"></div>
+    </div>
+
+    <div id="victoryModal">
+        <h1 id="victoryTitle">VICTORY!</h1>
+        <p id="victoryText">You have achieved greatness!</p>
+        <p id="victoryStats"></p>
+        <button onclick="location.reload()">Play Again</button>
+    </div>
+
+    <a href="index.html" class="back-link">← Back to Arcade</a>
+
+<script>
+// ============ CONSTANTS ============
+const MAP_SIZE = 50;
+const HEX_SIZE = 30;
+const SQRT3 = Math.sqrt(3);
+
+const TERRAIN = {
+    ocean: { color: '#1a4a6e', food: 0, prod: 0, move: 999, name: 'Ocean' },
+    coast: { color: '#2d6a8a', food: 1, prod: 0, move: 1, name: 'Coast' },
+    grass: { color: '#4a7c3f', food: 2, prod: 1, move: 1, name: 'Grassland' },
+    plains: { color: '#8a7d3a', food: 1, prod: 2, move: 1, name: 'Plains' },
+    desert: { color: '#c9b97a', food: 0, prod: 1, move: 1, name: 'Desert' },
+    forest: { color: '#2d5a2d', food: 1, prod: 2, move: 2, name: 'Forest' },
+    hills: { color: '#6a5d4a', food: 1, prod: 3, move: 2, name: 'Hills' },
+    mountain: { color: '#5a5a6a', food: 0, prod: 0, move: 999, name: 'Mountain' }
+};
+
+const UNITS = {
+    settler: { name: 'Settler', strength: 0, moves: 2, cost: 80, icon: '🏕️', actions: ['found'] },
+    warrior: { name: 'Warrior', strength: 8, moves: 2, cost: 40, icon: '⚔️', era: 0 },
+    archer: { name: 'Archer', strength: 6, moves: 2, cost: 50, icon: '🏹', ranged: 2, era: 0 },
+    spearman: { name: 'Spearman', strength: 10, moves: 2, cost: 50, icon: '🔱', era: 0 },
+    horseman: { name: 'Horseman', strength: 12, moves: 4, cost: 70, icon: '🐎', era: 1 },
+    swordsman: { name: 'Swordsman', strength: 14, moves: 2, cost: 70, icon: '🗡️', era: 1 },
+    knight: { name: 'Knight', strength: 20, moves: 4, cost: 100, icon: '🛡️', era: 2 },
+    crossbow: { name: 'Crossbowman', strength: 12, moves: 2, cost: 80, icon: '🎯', ranged: 2, era: 2 },
+    musket: { name: 'Musketman', strength: 24, moves: 2, cost: 120, icon: '🔫', era: 3 },
+    cannon: { name: 'Cannon', strength: 20, moves: 2, cost: 150, icon: '💣', ranged: 3, era: 3 },
+    tank: { name: 'Tank', strength: 40, moves: 5, cost: 250, icon: '🛡️', era: 3 }
+};
+
+const BUILDINGS = {
+    granary: { name: 'Granary', cost: 60, food: 2, icon: '🌾' },
+    barracks: { name: 'Barracks', cost: 60, military: true, icon: '⚔️' },
+    library: { name: 'Library', cost: 80, science: 2, icon: '📚' },
+    market: { name: 'Market', cost: 80, gold: 3, icon: '🏪' },
+    temple: { name: 'Temple', cost: 80, culture: 2, icon: '🛕' },
+    walls: { name: 'Walls', cost: 100, defense: 5, icon: '🏰' },
+    university: { name: 'University', cost: 150, science: 4, icon: '🎓', req: 'education' },
+    bank: { name: 'Bank', cost: 150, gold: 5, icon: '🏦', req: 'banking' },
+    factory: { name: 'Factory', cost: 200, prod: 4, icon: '🏭', req: 'industrialization' },
+    hospital: { name: 'Hospital', cost: 200, food: 4, icon: '🏥', req: 'medicine' }
+};
+
+const WONDERS = {
+    pyramids: { name: 'Pyramids', cost: 200, effect: '+2 production all cities', icon: '🔺' },
+    colossus: { name: 'Colossus', cost: 200, effect: '+4 gold in city', icon: '🗽' },
+    library_alex: { name: 'Great Library', cost: 250, effect: 'Free technology', icon: '📖' },
+    oracle: { name: 'Oracle', cost: 200, effect: '+3 culture all cities', icon: '🔮' }
+};
+
+const TECHS = {
+    // Ancient Era (0)
+    agriculture: { name: 'Agriculture', cost: 20, era: 0, unlocks: ['granary'] },
+    mining: { name: 'Mining', cost: 20, era: 0, unlocks: ['quarry'] },
+    pottery: { name: 'Pottery', cost: 25, era: 0, req: ['agriculture'] },
+    animal_husbandry: { name: 'Animal Husbandry', cost: 25, era: 0, req: ['agriculture'] },
+    archery: { name: 'Archery', cost: 25, era: 0, unlocks: ['archer'] },
+    sailing: { name: 'Sailing', cost: 30, era: 0, req: ['pottery'] },
+    writing: { name: 'Writing', cost: 35, era: 0, req: ['pottery'], unlocks: ['library'] },
+    bronze_working: { name: 'Bronze Working', cost: 35, era: 0, req: ['mining'], unlocks: ['spearman'] },
+    masonry: { name: 'Masonry', cost: 35, era: 0, req: ['mining'], unlocks: ['walls'] },
+    wheel: { name: 'The Wheel', cost: 35, era: 0, req: ['animal_husbandry'] },
+    
+    // Classical Era (1)
+    mathematics: { name: 'Mathematics', cost: 50, era: 1, req: ['writing'] },
+    philosophy: { name: 'Philosophy', cost: 50, era: 1, req: ['writing'], unlocks: ['temple'] },
+    currency: { name: 'Currency', cost: 55, era: 1, req: ['mathematics'], unlocks: ['market'] },
+    iron_working: { name: 'Iron Working', cost: 55, era: 1, req: ['bronze_working'], unlocks: ['swordsman'] },
+    horseback: { name: 'Horseback Riding', cost: 55, era: 1, req: ['wheel'], unlocks: ['horseman'] },
+    engineering: { name: 'Engineering', cost: 60, era: 1, req: ['mathematics', 'masonry'] },
+    construction: { name: 'Construction', cost: 60, era: 1, req: ['masonry'] },
+    
+    // Medieval Era (2)
+    education: { name: 'Education', cost: 80, era: 2, req: ['philosophy'], unlocks: ['university'] },
+    theology: { name: 'Theology', cost: 80, era: 2, req: ['philosophy'] },
+    chivalry: { name: 'Chivalry', cost: 85, era: 2, req: ['horseback', 'iron_working'], unlocks: ['knight'] },
+    machinery: { name: 'Machinery', cost: 85, era: 2, req: ['engineering'], unlocks: ['crossbow'] },
+    steel: { name: 'Steel', cost: 90, era: 2, req: ['iron_working'] },
+    banking: { name: 'Banking', cost: 95, era: 2, req: ['currency', 'education'], unlocks: ['bank'] },
+    printing: { name: 'Printing Press', cost: 95, era: 2, req: ['machinery'] },
+    
+    // Modern Era (3)
+    gunpowder: { name: 'Gunpowder', cost: 120, era: 3, req: ['steel', 'printing'], unlocks: ['musket'] },
+    astronomy: { name: 'Astronomy', cost: 120, era: 3, req: ['education'] },
+    navigation: { name: 'Navigation', cost: 125, era: 3, req: ['astronomy'] },
+    economics: { name: 'Economics', cost: 130, era: 3, req: ['banking', 'printing'] },
+    metallurgy: { name: 'Metallurgy', cost: 135, era: 3, req: ['gunpowder'], unlocks: ['cannon'] },
+    industrialization: { name: 'Industrialization', cost: 150, era: 3, req: ['economics'], unlocks: ['factory'] },
+    scientific_theory: { name: 'Scientific Theory', cost: 150, era: 3, req: ['astronomy'] },
+    medicine: { name: 'Medicine', cost: 140, era: 3, req: ['scientific_theory'], unlocks: ['hospital'] },
+    military_science: { name: 'Military Science', cost: 160, era: 3, req: ['metallurgy'] },
+    combustion: { name: 'Combustion', cost: 180, era: 3, req: ['military_science', 'industrialization'], unlocks: ['tank'] },
+    rocketry: { name: 'Rocketry', cost: 200, era: 3, req: ['scientific_theory'] },
+    spaceflight: { name: 'Spaceflight', cost: 250, era: 3, req: ['rocketry'], victory: 'science' }
+};
+
+const CIVS = [
+    { name: 'Rome', color: '#c92a2a', personality: 'aggressive', bonus: 'military' },
+    { name: 'Egypt', color: '#f59f00', personality: 'builder', bonus: 'wonder' },
+    { name: 'Greece', color: '#1971c2', personality: 'scientific', bonus: 'science' },
+    { name: 'China', color: '#2f9e44', personality: 'expansionist', bonus: 'growth' }
+];
+
+const ERA_NAMES = ['Ancient', 'Classical', 'Medieval', 'Modern'];
+
+// ============ GAME STATE ============
+let game = {
+    turn: 1,
+    year: -4000,
+    phase: 'player',
+    selectedUnit: null,
+    selectedCity: null,
+    viewX: 0,
+    viewY: 0
+};
+
+let player = {
+    id: 0,
+    name: 'Your Empire',
+    color: '#667eea',
+    gold: 100,
+    science: 0,
+    culture: 0,
+    techs: [],
+    researching: null,
+    researchProgress: 0,
+    units: [],
+    cities: [],
+    explored: new Set(),
+    atWar: new Set()
+};
+
+let civs = [];
+let map = [];
+let canvas, ctx, minimapCanvas, minimapCtx;
+
+// ============ MAP GENERATION ============
+function generateMap() {
+    map = [];
+    
+    // Simple noise-based generation
+    for (let q = 0; q < MAP_SIZE; q++) {
+        map[q] = [];
+        for (let r = 0; r < MAP_SIZE; r++) {
+            const noise = perlinNoise(q * 0.1, r * 0.1);
+            const moisture = perlinNoise(q * 0.08 + 100, r * 0.08 + 100);
+            
+            let terrain;
+            if (noise < 0.3) terrain = 'ocean';
+            else if (noise < 0.35) terrain = 'coast';
+            else if (noise < 0.45) terrain = moisture > 0.5 ? 'grass' : 'plains';
+            else if (noise < 0.55) terrain = moisture > 0.6 ? 'forest' : (moisture > 0.3 ? 'grass' : 'desert');
+            else if (noise < 0.7) terrain = moisture > 0.5 ? 'forest' : 'hills';
+            else terrain = 'mountain';
+            
+            map[q][r] = {
+                q, r,
+                terrain,
+                unit: null,
+                city: null,
+                improvement: null,
+                visible: false,
+                explored: false
+            };
+        }
+    }
+}
+
+function perlinNoise(x, y) {
+    // Simplified noise function
+    const n = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+    return (n - Math.floor(n));
+}
+
+// ============ HEX UTILITIES ============
+function hexToPixel(q, r) {
+    const x = HEX_SIZE * (SQRT3 * q + SQRT3/2 * r);
+    const y = HEX_SIZE * (3/2 * r);
+    return { x, y };
+}
+
+function pixelToHex(x, y) {
+    const q = (SQRT3/3 * x - 1/3 * y) / HEX_SIZE;
+    const r = (2/3 * y) / HEX_SIZE;
+    return hexRound(q, r);
+}
+
+function hexRound(q, r) {
+    const s = -q - r;
+    let rq = Math.round(q);
+    let rr = Math.round(r);
+    let rs = Math.round(s);
+    
+    const qDiff = Math.abs(rq - q);
+    const rDiff = Math.abs(rr - r);
+    const sDiff = Math.abs(rs - s);
+    
+    if (qDiff > rDiff && qDiff > sDiff) rq = -rr - rs;
+    else if (rDiff > sDiff) rr = -rq - rs;
+    
+    return { q: rq, r: rr };
+}
+
+function hexDistance(q1, r1, q2, r2) {
+    return (Math.abs(q1 - q2) + Math.abs(q1 + r1 - q2 - r2) + Math.abs(r1 - r2)) / 2;
+}
+
+function getNeighbors(q, r) {
+    const dirs = [[1,0], [1,-1], [0,-1], [-1,0], [-1,1], [0,1]];
+    const neighbors = [];
+    for (const [dq, dr] of dirs) {
+        const nq = (q + dq + MAP_SIZE) % MAP_SIZE;
+        const nr = (r + dr + MAP_SIZE) % MAP_SIZE;
+        if (map[nq] && map[nq][nr]) neighbors.push(map[nq][nr]);
+    }
+    return neighbors;
+}
+
+function wrapCoord(q, r) {
+    return {
+        q: ((q % MAP_SIZE) + MAP_SIZE) % MAP_SIZE,
+        r: ((r % MAP_SIZE) + MAP_SIZE) % MAP_SIZE
+    };
+}
+
+// ============ GAME INITIALIZATION ============
+function startGame() {
+    document.getElementById('overlay').classList.add('hidden');
+    
+    canvas = document.getElementById('map');
+    ctx = canvas.getContext('2d');
+    minimapCanvas = document.getElementById('minimap');
+    minimapCtx = minimapCanvas.getContext('2d');
+    
+    canvas.width = window.innerWidth - 320;
+    canvas.height = window.innerHeight;
+    
+    generateMap();
+    setupPlayer();
+    setupAICivs();
+    updateVisibility();
+    centerOnCapital();
+    
+    setupInput();
+    render();
+    updateUI();
+}
+
+function setupPlayer() {
+    // Find good starting location
+    let startQ, startR;
+    for (let i = 0; i < 100; i++) {
+        startQ = 5 + Math.floor(Math.random() * 10);
+        startR = 5 + Math.floor(Math.random() * 10);
+        const tile = map[startQ][startR];
+        if (tile.terrain === 'grass' || tile.terrain === 'plains') break;
+    }
+    
+    // Create starting units
+    player.units.push(createUnit('settler', startQ, startR, player));
+    player.units.push(createUnit('warrior', startQ + 1, startR, player));
+    
+    player.researching = 'agriculture';
+}
+
+function setupAICivs() {
+    civs = [];
+    const positions = [
+        { q: 35, r: 10 },
+        { q: 10, r: 35 },
+        { q: 35, r: 35 },
+        { q: 25, r: 25 }
+    ];
+    
+    for (let i = 0; i < 4; i++) {
+        const civData = CIVS[i];
+        const pos = positions[i];
+        
+        // Find valid spot near position
+        let q = pos.q, r = pos.r;
+        for (let j = 0; j < 20; j++) {
+            const tq = pos.q + Math.floor(Math.random() * 10) - 5;
+            const tr = pos.r + Math.floor(Math.random() * 10) - 5;
+            if (map[tq] && map[tq][tr] && (map[tq][tr].terrain === 'grass' || map[tq][tr].terrain === 'plains')) {
+                q = tq; r = tr;
+                break;
+            }
+        }
+        
+        const civ = {
+            id: i + 1,
+            ...civData,
+            gold: 100,
+            science: 0,
+            culture: 0,
+            techs: [],
+            researching: 'agriculture',
+            researchProgress: 0,
+            units: [],
+            cities: [],
+            atWar: new Set(),
+            attitude: 50 // 0-100, 50 is neutral
+        };
+        
+        // Found capital immediately
+        foundCity(q, r, civ, civData.name);
+        civ.units.push(createUnit('warrior', q + 1, r, civ));
+        
+        civs.push(civ);
+    }
+}
+
+function createUnit(type, q, r, owner) {
+    const data = UNITS[type];
+    const unit = {
+        id: Date.now() + Math.random(),
+        type,
+        ...data,
+        q, r,
+        owner,
+        health: 100,
+        movesLeft: data.moves,
+        fortified: false
+    };
+    
+    const wrapped = wrapCoord(q, r);
+    if (map[wrapped.q][wrapped.r]) {
+        map[wrapped.q][wrapped.r].unit = unit;
+    }
+    
+    return unit;
+}
+
+function foundCity(q, r, owner, name) {
+    const wrapped = wrapCoord(q, r);
+    const tile = map[wrapped.q][wrapped.r];
+    
+    if (!name) {
+        const cityNum = owner.cities.length + 1;
+        name = owner === player ? `City ${cityNum}` : `${owner.name} City ${cityNum}`;
+    }
+    
+    const city = {
+        id: Date.now() + Math.random(),
+        name,
+        q: wrapped.q,
+        r: wrapped.r,
+        owner,
+        population: 1,
+        food: 0,
+        foodNeeded: 15,
+        production: 0,
+        buildings: [],
+        building: null,
+        buildProgress: 0,
+        defense: 10
+    };
+    
+    tile.city = city;
+    owner.cities.push(city);
+    
+    // Remove settler
+    if (owner === player && game.selectedUnit && game.selectedUnit.type === 'settler') {
+        removeUnit(game.selectedUnit);
+        game.selectedUnit = null;
+    }
+    
+    return city;
+}
+
+// ============ INPUT HANDLING ============
+function setupInput() {
+    let dragging = false;
+    let lastX, lastY;
+    
+    canvas.addEventListener('mousedown', (e) => {
+        if (e.button === 0) {
+            dragging = true;
+            lastX = e.clientX;
+            lastY = e.clientY;
+        }
+    });
+    
+    canvas.addEventListener('mousemove', (e) => {
+        if (dragging) {
+            game.viewX += e.clientX - lastX;
+            game.viewY += e.clientY - lastY;
+            lastX = e.clientX;
+            lastY = e.clientY;
+            render();
+        }
+    });
+    
+    canvas.addEventListener('mouseup', (e) => {
+        if (dragging && Math.abs(e.clientX - lastX) < 5 && Math.abs(e.clientY - lastY) < 5) {
+            handleClick(e);
+        }
+        dragging = false;
+    });
+    
+    canvas.addEventListener('wheel', (e) => {
+        // Could implement zoom here
+        e.preventDefault();
+    });
+    
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') endTurn();
+        if (e.key === 'Escape') {
+            game.selectedUnit = null;
+            game.selectedCity = null;
+            updateUI();
+            render();
+        }
+    });
+}
+
+function handleClick(e) {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left - game.viewX;
+    const y = e.clientY - rect.top - game.viewY;
+    
+    const hex = pixelToHex(x, y);
+    const wrapped = wrapCoord(hex.q, hex.r);
+    const tile = map[wrapped.q]?.[wrapped.r];
+    
+    if (!tile || !tile.explored) return;
+    
+    // If we have a unit selected and clicked a different tile, try to move
+    if (game.selectedUnit && (wrapped.q !== game.selectedUnit.q || wrapped.r !== game.selectedUnit.r)) {
+        if (game.selectedUnit.movesLeft > 0) {
+            moveUnit(game.selectedUnit, wrapped.q, wrapped.r);
+        }
+    }
+    
+    // Select what's on the tile
+    if (tile.unit && tile.unit.owner === player) {
+        game.selectedUnit = tile.unit;
+        game.selectedCity = null;
+    } else if (tile.city && tile.city.owner === player) {
+        game.selectedCity = tile.city;
+        game.selectedUnit = null;
+    } else {
+        game.selectedUnit = null;
+        game.selectedCity = null;
+    }
+    
+    updateUI();
+    render();
+}
+
+// ============ UNIT ACTIONS ============
+function moveUnit(unit, toQ, toR) {
+    const fromTile = map[unit.q][unit.r];
+    const toTile = map[toQ][toR];
+    
+    if (!toTile) return false;
+    
+    const dist = hexDistance(unit.q, unit.r, toQ, toR);
+    const moveCost = TERRAIN[toTile.terrain].move;
+    
+    if (moveCost > 10) {
+        notify("Can't move there!");
+        return false;
+    }
+    
+    // Combat?
+    if (toTile.unit && toTile.unit.owner !== unit.owner) {
+        combat(unit, toTile.unit);
+        unit.movesLeft = 0;
+        return true;
+    }
+    
+    // City attack?
+    if (toTile.city && toTile.city.owner !== unit.owner) {
+        attackCity(unit, toTile.city);
+        unit.movesLeft = 0;
+        return true;
+    }
+    
+    if (toTile.unit) return false; // Occupied
+    
+    // Move
+    fromTile.unit = null;
+    toTile.unit = unit;
+    unit.q = toQ;
+    unit.r = toR;
+    unit.movesLeft = Math.max(0, unit.movesLeft - moveCost);
+    
+    updateVisibility();
+    return true;
+}
+
+function combat(attacker, defender) {
+    const atkStr = attacker.strength * (attacker.health / 100);
+    const defStr = defender.strength * (defender.health / 100) * 1.1; // Defender bonus
+    
+    const ratio = atkStr / (atkStr + defStr);
+    const atkDamage = Math.floor((1 - ratio) * 50 + Math.random() * 20);
+    const defDamage = Math.floor(ratio * 50 + Math.random() * 20);
+    
+    attacker.health -= atkDamage;
+    defender.health -= defDamage;
+    
+    notify(`Combat! ${attacker.name} vs ${defender.name}`);
+    
+    if (defender.health <= 0) {
+        notify(`${defender.name} destroyed!`);
+        removeUnit(defender);
+        
+        // Move attacker to tile
+        const tile = map[defender.q][defender.r];
+        map[attacker.q][attacker.r].unit = null;
+        tile.unit = attacker;
+        attacker.q = defender.q;
+        attacker.r = defender.r;
+    }
+    
+    if (attacker.health <= 0) {
+        notify(`${attacker.name} destroyed!`);
+        removeUnit(attacker);
+        if (game.selectedUnit === attacker) game.selectedUnit = null;
+    }
+}
+
+function attackCity(unit, city) {
+    const atkStr = unit.strength * (unit.health / 100);
+    const defStr = city.defense + city.population * 2;
+    
+    const damage = Math.floor(atkStr * 0.5);
+    city.defense -= damage;
+    unit.health -= Math.floor(defStr * 0.3);
+    
+    notify(`Attacking ${city.name}!`);
+    
+    if (city.defense <= 0) {
+        captureCity(city, unit.owner);
+    }
+    
+    if (unit.health <= 0) {
+        removeUnit(unit);
+        if (game.selectedUnit === unit) game.selectedUnit = null;
+    }
+}
+
+function captureCity(city, newOwner) {
+    const oldOwner = city.owner;
+    oldOwner.cities = oldOwner.cities.filter(c => c !== city);
+    
+    city.owner = newOwner;
+    city.defense = 10;
+    newOwner.cities.push(city);
+    
+    notify(`${city.name} captured!`);
+    
+    // Check domination victory
+    checkVictory();
+}
+
+function removeUnit(unit) {
+    const tile = map[unit.q][unit.r];
+    if (tile.unit === unit) tile.unit = null;
+    
+    unit.owner.units = unit.owner.units.filter(u => u !== unit);
+}
+
+// ============ VISIBILITY ============
+function updateVisibility() {
+    // Reset visibility
+    for (let q = 0; q < MAP_SIZE; q++) {
+        for (let r = 0; r < MAP_SIZE; r++) {
+            map[q][r].visible = false;
+        }
+    }
+    
+    // Reveal around units and cities
+    const revealRadius = 2;
+    for (const unit of player.units) {
+        revealAround(unit.q, unit.r, revealRadius);
+    }
+    for (const city of player.cities) {
+        revealAround(city.q, city.r, revealRadius + 1);
+    }
+}
+
+function revealAround(q, r, radius) {
+    for (let dq = -radius; dq <= radius; dq++) {
+        for (let dr = -radius; dr <= radius; dr++) {
+            if (hexDistance(0, 0, dq, dr) <= radius) {
+                const wrapped = wrapCoord(q + dq, r + dr);
+                const tile = map[wrapped.q][wrapped.r];
+                tile.visible = true;
+                tile.explored = true;
+                player.explored.add(`${wrapped.q},${wrapped.r}`);
+            }
+        }
+    }
+}
+
+// ============ TURN PROCESSING ============
+function endTurn() {
+    // Process player cities
+    for (const city of player.cities) {
+        processCity(city);
+    }
+    
+    // Reset player unit moves
+    for (const unit of player.units) {
+        unit.movesLeft = unit.moves;
+    }
+    
+    // Research
+    if (player.researching) {
+        const tech = TECHS[player.researching];
+        player.researchProgress += getTotalScience();
+        
+        if (player.researchProgress >= tech.cost) {
+            player.techs.push(player.researching);
+            notify(`Discovered ${tech.name}!`);
+            player.researching = null;
+            player.researchProgress = 0;
+            
+            if (tech.victory === 'science') {
+                victory('Science', 'Your civilization has reached the stars!');
+            }
+        }
+    }
+    
+    // Process AI
+    for (const civ of civs) {
+        processAI(civ);
+    }
+    
+    game.turn++;
+    game.year += game.turn < 100 ? 50 : (game.turn < 200 ? 20 : 10);
+    
+    updateVisibility();
+    updateUI();
+    render();
+    
+    checkVictory();
+}
+
+function processCity(city) {
+    const yields = getCityYields(city);
+    
+    // Food
+    city.food += yields.food - city.population * 2;
+    if (city.food >= city.foodNeeded) {
+        city.population++;
+        city.food = 0;
+        city.foodNeeded = Math.floor(city.foodNeeded * 1.5);
+        notify(`${city.name} grew to ${city.population}!`);
+    }
+    if (city.food < 0 && city.population > 1) {
+        city.population--;
+        city.food = 0;
+    }
+    
+    // Production
+    if (city.building) {
+        city.buildProgress += yields.production;
+        const buildData = UNITS[city.building] || BUILDINGS[city.building] || WONDERS[city.building];
+        
+        if (city.buildProgress >= buildData.cost) {
+            if (UNITS[city.building]) {
+                // Create unit
+                city.owner.units.push(createUnit(city.building, city.q, city.r, city.owner));
+                notify(`${city.name} built ${buildData.name}!`);
+            } else {
+                // Add building
+                city.buildings.push(city.building);
+                notify(`${city.name} built ${buildData.name}!`);
+            }
+            city.building = null;
+            city.buildProgress = 0;
+        }
+    }
+    
+    // Gold & Culture
+    city.owner.gold += yields.gold;
+    city.owner.culture += yields.culture;
+}
+
+function getCityYields(city) {
+    let food = 2, production = 2, gold = 2, science = 0, culture = 0;
+    
+    // From terrain
+    for (const neighbor of getNeighbors(city.q, city.r)) {
+        const t = TERRAIN[neighbor.terrain];
+        food += t.food;
+        production += t.prod;
+    }
+    
+    // From buildings
+    for (const b of city.buildings) {
+        const building = BUILDINGS[b];
+        if (building) {
+            food += building.food || 0;
+            production += building.prod || 0;
+            gold += building.gold || 0;
+            science += building.science || 0;
+            culture += building.culture || 0;
+        }
+    }
+    
+    // Population bonus
+    production += Math.floor(city.population * 0.5);
+    science += city.population;
+    
+    return { food, production, gold, science, culture };
+}
+
+function getTotalScience() {
+    let total = 0;
+    for (const city of player.cities) {
+        total += getCityYields(city).science;
+    }
+    return Math.max(1, total);
+}
+
+// ============ AI ============
+function processAI(civ) {
+    // Research
+    if (!civ.researching) {
+        const available = Object.keys(TECHS).filter(t => canResearch(t, civ));
+        if (available.length > 0) {
+            civ.researching = available[Math.floor(Math.random() * available.length)];
+        }
+    }
+    
+    if (civ.researching) {
+        const tech = TECHS[civ.researching];
+        let sciencePerTurn = civ.cities.length * 3 + civ.cities.reduce((sum, c) => sum + c.population, 0);
+        civ.researchProgress += sciencePerTurn;
+        
+        if (civ.researchProgress >= tech.cost) {
+            civ.techs.push(civ.researching);
+            civ.researching = null;
+            civ.researchProgress = 0;
+        }
+    }
+    
+    // Cities
+    for (const city of civ.cities) {
+        processCity(city);
+        
+        // Set production if none
+        if (!city.building) {
+            if (civ.personality === 'aggressive' && Math.random() < 0.7) {
+                city.building = 'warrior';
+            } else if (civ.personality === 'scientific' && !city.buildings.includes('library')) {
+                city.building = 'library';
+            } else if (city.population < 3) {
+                city.building = 'granary';
+            } else {
+                city.building = Math.random() < 0.5 ? 'warrior' : 'market';
+            }
+        }
+    }
+    
+    // Units
+    for (const unit of civ.units) {
+        unit.movesLeft = unit.moves;
+        
+        // Simple AI: move toward player if aggressive and at war
+        if (civ.atWar.has(0) || civ.personality === 'aggressive') {
+            if (player.cities.length > 0) {
+                const target = player.cities[0];
+                const dx = target.q - unit.q;
+                const dy = target.r - unit.r;
+                
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    moveUnit(unit, unit.q + Math.sign(dx), unit.r);
+                } else if (dy !== 0) {
+                    moveUnit(unit, unit.q, unit.r + Math.sign(dy));
+                }
+            }
+        } else {
+            // Wander
+            if (Math.random() < 0.3) {
+                const neighbors = getNeighbors(unit.q, unit.r);
+                const valid = neighbors.filter(n => TERRAIN[n.terrain].move < 10 && !n.unit);
+                if (valid.length > 0) {
+                    const target = valid[Math.floor(Math.random() * valid.length)];
+                    moveUnit(unit, target.q, target.r);
+                }
+            }
+        }
+    }
+    
+    // Diplomacy: chance to declare war if aggressive
+    if (civ.personality === 'aggressive' && !civ.atWar.has(0) && Math.random() < 0.02) {
+        civ.atWar.add(0);
+        player.atWar.add(civ.id);
+        notify(`${civ.name} has declared WAR!`);
+    }
+}
+
+function canResearch(techId, owner = player) {
+    if (owner.techs.includes(techId)) return false;
+    const tech = TECHS[techId];
+    if (!tech.req) return true;
+    return tech.req.every(r => owner.techs.includes(r));
+}
+
+// ============ VICTORY ============
+function checkVictory() {
+    // Domination: control all capitals
+    const aliveCivs = civs.filter(c => c.cities.length > 0);
+    if (aliveCivs.length === 0 && player.cities.length > 0) {
+        victory('Domination', 'You have conquered all civilizations!');
+    }
+    
+    // Culture victory: 1000 culture
+    if (player.culture >= 1000) {
+        victory('Culture', 'Your culture has become legendary!');
+    }
+    
+    // Player eliminated
+    if (player.cities.length === 0 && player.units.filter(u => u.type === 'settler').length === 0) {
+        defeat();
+    }
+}
+
+function victory(type, text) {
+    document.getElementById('victoryTitle').textContent = `${type.toUpperCase()} VICTORY!`;
+    document.getElementById('victoryText').textContent = text;
+    document.getElementById('victoryStats').textContent = `Turn ${game.turn} • ${Math.abs(game.year)} ${game.year < 0 ? 'BC' : 'AD'}`;
+    document.getElementById('victoryModal').style.display = 'block';
+}
+
+function defeat() {
+    document.getElementById('victoryTitle').textContent = 'DEFEAT';
+    document.getElementById('victoryText').textContent = 'Your civilization has been destroyed.';
+    document.getElementById('victoryStats').textContent = `Turn ${game.turn}`;
+    document.getElementById('victoryModal').style.display = 'block';
+}
+
+// ============ RENDERING ============
+function render() {
+    ctx.fillStyle = '#0a0a1a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.save();
+    ctx.translate(game.viewX, game.viewY);
+    
+    // Draw hexes
+    for (let q = 0; q < MAP_SIZE; q++) {
+        for (let r = 0; r < MAP_SIZE; r++) {
+            drawHex(q, r);
+        }
+    }
+    
+    // Draw cities
+    for (let q = 0; q < MAP_SIZE; q++) {
+        for (let r = 0; r < MAP_SIZE; r++) {
+            const tile = map[q][r];
+            if (tile.city && tile.explored) {
+                drawCity(tile.city);
+            }
+        }
+    }
+    
+    // Draw units
+    for (let q = 0; q < MAP_SIZE; q++) {
+        for (let r = 0; r < MAP_SIZE; r++) {
+            const tile = map[q][r];
+            if (tile.unit && tile.visible) {
+                drawUnit(tile.unit);
+            }
+        }
+    }
+    
+    // Draw selection
+    if (game.selectedUnit) {
+        const pos = hexToPixel(game.selectedUnit.q, game.selectedUnit.r);
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        drawHexPath(pos.x, pos.y);
+        ctx.stroke();
+        
+        // Draw movement range
+        if (game.selectedUnit.movesLeft > 0) {
+            ctx.fillStyle = 'rgba(255,255,255,0.1)';
+            for (let dq = -3; dq <= 3; dq++) {
+                for (let dr = -3; dr <= 3; dr++) {
+                    if (hexDistance(0, 0, dq, dr) <= game.selectedUnit.movesLeft) {
+                        const wrapped = wrapCoord(game.selectedUnit.q + dq, game.selectedUnit.r + dr);
+                        const tile = map[wrapped.q][wrapped.r];
+                        if (tile && TERRAIN[tile.terrain].move <= game.selectedUnit.movesLeft) {
+                            const p = hexToPixel(wrapped.q, wrapped.r);
+                            ctx.beginPath();
+                            drawHexPath(p.x, p.y);
+                            ctx.fill();
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    if (game.selectedCity) {
+        const pos = hexToPixel(game.selectedCity.q, game.selectedCity.r);
+        ctx.strokeStyle = '#ffd700';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        drawHexPath(pos.x, pos.y);
+        ctx.stroke();
+    }
+    
+    ctx.restore();
+    
+    // Minimap
+    drawMinimap();
+}
+
+function drawHex(q, r) {
+    const tile = map[q][r];
+    const pos = hexToPixel(q, r);
+    
+    if (!tile.explored) {
+        ctx.fillStyle = '#111';
+    } else if (!tile.visible) {
+        ctx.fillStyle = shadeColor(TERRAIN[tile.terrain].color, -40);
+    } else {
+        ctx.fillStyle = TERRAIN[tile.terrain].color;
+    }
+    
+    ctx.beginPath();
+    drawHexPath(pos.x, pos.y);
+    ctx.fill();
+    
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+}
+
+function drawHexPath(x, y) {
+    for (let i = 0; i < 6; i++) {
+        const angle = Math.PI / 3 * i - Math.PI / 6;
+        const hx = x + HEX_SIZE * Math.cos(angle);
+        const hy = y + HEX_SIZE * Math.sin(angle);
+        if (i === 0) ctx.moveTo(hx, hy);
+        else ctx.lineTo(hx, hy);
+    }
+    ctx.closePath();
+}
+
+function drawCity(city) {
+    const pos = hexToPixel(city.q, city.r);
+    
+    // City circle
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, 15, 0, Math.PI * 2);
+    ctx.fillStyle = city.owner.color;
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Population
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(city.population, pos.x, pos.y);
+    
+    // Name
+    ctx.font = '10px sans-serif';
+    ctx.fillText(city.name, pos.x, pos.y + 22);
+}
+
+function drawUnit(unit) {
+    const pos = hexToPixel(unit.q, unit.r);
+    
+    // Unit background
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, 12, 0, Math.PI * 2);
+    ctx.fillStyle = unit.owner.color;
+    ctx.fill();
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Icon
+    ctx.font = '14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(unit.icon, pos.x, pos.y);
+    
+    // Health bar
+    if (unit.health < 100) {
+        ctx.fillStyle = '#333';
+        ctx.fillRect(pos.x - 10, pos.y + 14, 20, 3);
+        ctx.fillStyle = unit.health > 50 ? '#4a4' : (unit.health > 25 ? '#aa4' : '#a44');
+        ctx.fillRect(pos.x - 10, pos.y + 14, 20 * (unit.health / 100), 3);
+    }
+}
+
+function drawMinimap() {
+    const scale = minimapCanvas.width / MAP_SIZE;
+    
+    minimapCtx.fillStyle = '#111';
+    minimapCtx.fillRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+    
+    for (let q = 0; q < MAP_SIZE; q++) {
+        for (let r = 0; r < MAP_SIZE; r++) {
+            const tile = map[q][r];
+            if (tile.explored) {
+                minimapCtx.fillStyle = tile.city ? tile.city.owner.color : TERRAIN[tile.terrain].color;
+            } else {
+                minimapCtx.fillStyle = '#222';
+            }
+            minimapCtx.fillRect(q * scale, r * scale, scale, scale);
+        }
+    }
+    
+    // Viewport indicator
+    const vx = (-game.viewX / (HEX_SIZE * SQRT3)) * scale;
+    const vy = (-game.viewY / (HEX_SIZE * 1.5)) * scale;
+    const vw = (canvas.width / (HEX_SIZE * SQRT3)) * scale;
+    const vh = (canvas.height / (HEX_SIZE * 1.5)) * scale;
+    
+    minimapCtx.strokeStyle = '#fff';
+    minimapCtx.lineWidth = 1;
+    minimapCtx.strokeRect(vx, vy, vw, vh);
+}
+
+function shadeColor(color, percent) {
+    const num = parseInt(color.replace('#', ''), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = Math.max(0, Math.min(255, (num >> 16) + amt));
+    const G = Math.max(0, Math.min(255, (num >> 8 & 0x00FF) + amt));
+    const B = Math.max(0, Math.min(255, (num & 0x0000FF) + amt));
+    return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+}
+
+function centerOnCapital() {
+    if (player.cities.length > 0) {
+        const city = player.cities[0];
+        const pos = hexToPixel(city.q, city.r);
+        game.viewX = canvas.width / 2 - pos.x;
+        game.viewY = canvas.height / 2 - pos.y;
+    } else if (player.units.length > 0) {
+        const unit = player.units[0];
+        const pos = hexToPixel(unit.q, unit.r);
+        game.viewX = canvas.width / 2 - pos.x;
+        game.viewY = canvas.height / 2 - pos.y;
+    }
+}
+
+// ============ UI ============
+function updateUI() {
+    document.getElementById('turnNum').textContent = game.turn;
+    document.getElementById('yearDisplay').textContent = game.year < 0 ? `${Math.abs(game.year)} BC` : `${game.year} AD`;
+    document.getElementById('goldVal').textContent = player.gold;
+    document.getElementById('scienceVal').textContent = getTotalScience();
+    document.getElementById('cultureVal').textContent = player.culture;
+    document.getElementById('militaryVal').textContent = player.units.filter(u => u.strength > 0).length;
+    
+    // Research progress
+    if (player.researching) {
+        const tech = TECHS[player.researching];
+        document.getElementById('researchProgress').textContent = `Researching: ${tech.name} (${player.researchProgress}/${tech.cost})`;
+    } else {
+        document.getElementById('researchProgress').textContent = 'No research! Open Tech Tree';
+    }
+    
+    // Selection info
+    document.getElementById('nothingSelected').style.display = (game.selectedUnit || game.selectedCity) ? 'none' : 'block';
+    document.getElementById('unitInfo').style.display = game.selectedUnit ? 'block' : 'none';
+    document.getElementById('cityInfo').style.display = game.selectedCity ? 'block' : 'none';
+    
+    if (game.selectedUnit) {
+        const u = game.selectedUnit;
+        document.getElementById('unitName').textContent = u.name;
+        document.getElementById('unitType').textContent = u.strength > 0 ? 'Military Unit' : 'Civilian Unit';
+        document.getElementById('unitHealth').textContent = `${u.health}/100`;
+        document.getElementById('unitMoves').textContent = `${u.movesLeft}/${u.moves}`;
+        document.getElementById('unitStrength').textContent = u.strength;
+        
+        // Actions
+        const actions = document.querySelector('#unitInfo #actions');
+        actions.innerHTML = '';
+        
+        if (u.type === 'settler') {
+            const btn = document.createElement('button');
+            btn.className = 'action-btn build';
+            btn.textContent = '🏙️ Found City';
+            btn.onclick = () => {
+                foundCity(u.q, u.r, player);
+                removeUnit(u);
+                game.selectedUnit = null;
+                updateUI();
+                render();
+            };
+            actions.appendChild(btn);
+        }
+    }
+    
+    if (game.selectedCity) {
+        const c = game.selectedCity;
+        const yields = getCityYields(c);
+        document.getElementById('cityName').textContent = c.name;
+        document.getElementById('cityPop').textContent = c.population;
+        document.getElementById('cityFood').textContent = `${c.food}/${c.foodNeeded}`;
+        document.getElementById('cityProd').textContent = yields.production;
+        document.getElementById('cityBuilding').textContent = c.building ? 
+            `${(UNITS[c.building] || BUILDINGS[c.building])?.name} (${c.buildProgress}/${(UNITS[c.building] || BUILDINGS[c.building])?.cost})` : 
+            'Nothing';
+        
+        const actions = document.querySelector('#cityInfo #actions');
+        actions.innerHTML = '';
+        
+        const btn = document.createElement('button');
+        btn.className = 'action-btn';
+        btn.textContent = '🏗️ Change Production';
+        btn.onclick = () => openCityBuild(c);
+        actions.appendChild(btn);
+    }
+}
+
+function notify(text) {
+    const container = document.getElementById('notifications');
+    const div = document.createElement('div');
+    div.className = 'notification';
+    div.textContent = text;
+    container.appendChild(div);
+    
+    setTimeout(() => div.remove(), 4000);
+}
+
+// ============ MODALS ============
+function openTechTree() {
+    const content = document.getElementById('techContent');
+    content.innerHTML = '';
+    
+    for (let era = 0; era < 4; era++) {
+        const eraDiv = document.createElement('div');
+        eraDiv.className = 'tech-era';
+        eraDiv.innerHTML = `<div class="era-title">${ERA_NAMES[era]} Era</div>`;
+        
+        const grid = document.createElement('div');
+        grid.className = 'tech-grid';
+        
+        for (const [id, tech] of Object.entries(TECHS)) {
+            if (tech.era !== era) continue;
+            
+            const researched = player.techs.includes(id);
+            const available = canResearch(id);
+            const isResearching = player.researching === id;
+            
+            const div = document.createElement('div');
+            div.className = `tech-item ${researched ? 'researched' : (available ? 'available' : 'locked')}`;
+            if (isResearching) div.style.borderColor = '#4ecdc4';
+            
+            div.innerHTML = `
+                <div>${tech.name}</div>
+                <div class="cost">${researched ? '✓' : `🔬 ${tech.cost}`}</div>
+            `;
+            
+            if (available && !researched) {
+                div.onclick = () => {
+                    player.researching = id;
+                    player.researchProgress = 0;
+                    notify(`Now researching ${tech.name}`);
+                    closeTechTree();
+                    updateUI();
+                };
+            }
+            
+            grid.appendChild(div);
+        }
+        
+        eraDiv.appendChild(grid);
+        content.appendChild(eraDiv);
+    }
+    
+    document.getElementById('techTree').style.display = 'block';
+}
+
+function closeTechTree() {
+    document.getElementById('techTree').style.display = 'none';
+}
+
+function openDiplomacy() {
+    const content = document.getElementById('diploContent');
+    content.innerHTML = '';
+    
+    for (const civ of civs) {
+        const atWar = player.atWar.has(civ.id);
+        const attitude = atWar ? 'hostile' : (civ.attitude > 60 ? 'friendly' : 'neutral');
+        
+        const card = document.createElement('div');
+        card.className = 'civ-card';
+        card.innerHTML = `
+            <div class="civ-header">
+                <span class="civ-name" style="color:${civ.color}">${civ.name}</span>
+                <span class="civ-attitude attitude-${attitude}">${atWar ? 'At War' : (attitude.charAt(0).toUpperCase() + attitude.slice(1))}</span>
+            </div>
+            <div>Cities: ${civ.cities.length} • Units: ${civ.units.length}</div>
+            <div class="diplo-actions">
+                ${atWar ? 
+                    `<button class="action-btn" onclick="makePeace(${civ.id})">☮️ Offer Peace</button>` :
+                    `<button class="action-btn attack" onclick="declareWar(${civ.id})">⚔️ Declare War</button>`
+                }
+            </div>
+        `;
+        content.appendChild(card);
+    }
+    
+    document.getElementById('diplomacy').style.display = 'block';
+}
+
+function closeDiplomacy() {
+    document.getElementById('diplomacy').style.display = 'none';
+}
+
+function declareWar(civId) {
+    const civ = civs.find(c => c.id === civId);
+    player.atWar.add(civId);
+    civ.atWar.add(0);
+    civ.attitude = 0;
+    notify(`You declared war on ${civ.name}!`);
+    closeDiplomacy();
+}
+
+function makePeace(civId) {
+    const civ = civs.find(c => c.id === civId);
+    if (civ.attitude < 30) {
+        notify(`${civ.name} refuses peace!`);
+        return;
+    }
+    player.atWar.delete(civId);
+    civ.atWar.delete(0);
+    civ.attitude = 40;
+    notify(`Peace with ${civ.name}!`);
+    closeDiplomacy();
+}
+
+function openCityBuild(city) {
+    const content = document.getElementById('buildContent');
+    content.innerHTML = '';
+    
+    // Units
+    content.innerHTML += '<div class="panel-title">Units</div>';
+    for (const [id, unit] of Object.entries(UNITS)) {
+        const canBuild = !unit.era || player.techs.some(t => TECHS[t]?.unlocks?.includes(id)) || unit.era === 0;
+        
+        const div = document.createElement('div');
+        div.className = `build-item ${canBuild ? '' : 'disabled'}`;
+        div.innerHTML = `
+            <span>${unit.icon} ${unit.name}</span>
+            <span class="build-cost">⚙️ ${unit.cost}</span>
+        `;
+        if (canBuild) {
+            div.onclick = () => {
+                city.building = id;
+                city.buildProgress = 0;
+                closeCityBuild();
+                updateUI();
+            };
+        }
+        content.appendChild(div);
+    }
+    
+    // Buildings
+    content.innerHTML += '<div class="panel-title" style="margin-top:15px">Buildings</div>';
+    for (const [id, building] of Object.entries(BUILDINGS)) {
+        const hasBuilding = city.buildings.includes(id);
+        const hasReq = !building.req || player.techs.includes(building.req);
+        const canBuild = !hasBuilding && hasReq;
+        
+        const div = document.createElement('div');
+        div.className = `build-item ${canBuild ? '' : 'disabled'}`;
+        div.innerHTML = `
+            <span>${building.icon} ${building.name} ${hasBuilding ? '✓' : ''}</span>
+            <span class="build-cost">⚙️ ${building.cost}</span>
+        `;
+        if (canBuild) {
+            div.onclick = () => {
+                city.building = id;
+                city.buildProgress = 0;
+                closeCityBuild();
+                updateUI();
+            };
+        }
+        content.appendChild(div);
+    }
+    
+    document.getElementById('cityBuild').style.display = 'block';
+}
+
+function closeCityBuild() {
+    document.getElementById('cityBuild').style.display = 'none';
+}
+
+// Start
+window.onload = () => {
+    // Preload
+};
+</script>
+</body>
+</html>

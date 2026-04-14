@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pong</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 800px;
+            margin-bottom: 15px;
+        }
+        h1 { color: #fff; font-size: 2rem; text-shadow: 0 0 20px rgba(255,255,255,0.5); letter-spacing: 4px; }
+        .back-btn {
+            color: rgba(255,255,255,0.6);
+            text-decoration: none;
+            padding: 8px 16px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 20px;
+            transition: all 0.3s;
+        }
+        .back-btn:hover { color: #fff; border-color: #fff; }
+        .scores {
+            display: flex;
+            gap: 60px;
+            color: #fff;
+            font-size: 3rem;
+            font-weight: bold;
+        }
+        .score { text-shadow: 0 0 20px rgba(255,255,255,0.5); }
+        #game {
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            box-shadow: 0 0 40px rgba(255,255,255,0.1);
+        }
+        .controls {
+            margin-top: 15px;
+            color: rgba(255,255,255,0.4);
+            font-size: 0.85rem;
+        }
+        .overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .overlay.show { opacity: 1; pointer-events: all; }
+        .overlay h2 { color: #fff; font-size: 2.5rem; margin-bottom: 20px; }
+        .btn {
+            background: linear-gradient(180deg, #fff 0%, #ccc 100%);
+            border: none;
+            color: #000;
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover { transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="index.html" class="back-btn">← Arcade</a>
+        <h1>PONG</h1>
+        <div class="scores">
+            <span class="score" id="p1">0</span>
+            <span class="score" id="p2">0</span>
+        </div>
+    </div>
+    <div style="position:relative;">
+        <canvas id="game" width="800" height="500"></canvas>
+        <div class="overlay show" id="menu">
+            <h2>🏓 PONG</h2>
+            <button class="btn" onclick="startGame(false)">vs AI</button>
+            <button class="btn" onclick="startGame(true)">2 Players</button>
+        </div>
+    </div>
+    <div class="controls">
+        Player 1: <kbd>W</kbd>/<kbd>S</kbd> &nbsp; Player 2: <kbd>↑</kbd>/<kbd>↓</kbd>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        const W = canvas.width, H = canvas.height;
+        
+        let twoPlayer = false;
+        let p1Score = 0, p2Score = 0;
+        let ball, p1, p2, gameLoop;
+        
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx;
+        
+        function beep(freq, dur) {
+            if (!audioCtx) audioCtx = new AudioContext();
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            o.type = 'square';
+            o.frequency.value = freq;
+            g.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + dur);
+            o.connect(g); g.connect(audioCtx.destination);
+            o.start(); o.stop(audioCtx.currentTime + dur);
+        }
+        
+        function reset() {
+            ball = { x: W/2, y: H/2, vx: (Math.random() > 0.5 ? 1 : -1) * 6, vy: (Math.random() - 0.5) * 6, r: 10 };
+            p1 = { x: 20, y: H/2 - 50, w: 12, h: 100, vy: 0 };
+            p2 = { x: W - 32, y: H/2 - 50, w: 12, h: 100, vy: 0 };
+        }
+        
+        function startGame(two) {
+            twoPlayer = two;
+            p1Score = p2Score = 0;
+            document.getElementById('p1').textContent = 0;
+            document.getElementById('p2').textContent = 0;
+            document.getElementById('menu').classList.remove('show');
+            reset();
+            if (gameLoop) cancelAnimationFrame(gameLoop);
+            loop();
+        }
+        
+        function loop() {
+            update();
+            draw();
+            gameLoop = requestAnimationFrame(loop);
+        }
+        
+        function update() {
+            // Ball
+            ball.x += ball.vx;
+            ball.y += ball.vy;
+            
+            // Top/bottom bounce
+            if (ball.y - ball.r < 0 || ball.y + ball.r > H) {
+                ball.vy *= -1;
+                beep(300, 0.1);
+            }
+            
+            // Paddle collision
+            [p1, p2].forEach(p => {
+                if (ball.x + ball.r > p.x && ball.x - ball.r < p.x + p.w &&
+                    ball.y > p.y && ball.y < p.y + p.h) {
+                    ball.vx *= -1.05;
+                    ball.vy += p.vy * 0.3;
+                    ball.x = p === p1 ? p.x + p.w + ball.r : p.x - ball.r;
+                    beep(500, 0.1);
+                }
+            });
+            
+            // Score
+            if (ball.x < 0) { p2Score++; document.getElementById('p2').textContent = p2Score; beep(200, 0.3); reset(); }
+            if (ball.x > W) { p1Score++; document.getElementById('p1').textContent = p1Score; beep(200, 0.3); reset(); }
+            
+            // Paddle movement
+            p1.y += p1.vy;
+            p2.y += p2.vy;
+            p1.y = Math.max(0, Math.min(H - p1.h, p1.y));
+            p2.y = Math.max(0, Math.min(H - p2.h, p2.y));
+            
+            // AI
+            if (!twoPlayer) {
+                const target = ball.y - p2.h / 2;
+                p2.y += (target - p2.y) * 0.08;
+            }
+        }
+        
+        function draw() {
+            ctx.fillStyle = '#0a0a15';
+            ctx.fillRect(0, 0, W, H);
+            
+            // Center line
+            ctx.setLineDash([10, 10]);
+            ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+            ctx.beginPath();
+            ctx.moveTo(W/2, 0);
+            ctx.lineTo(W/2, H);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Ball glow
+            const grad = ctx.createRadialGradient(ball.x, ball.y, 0, ball.x, ball.y, ball.r * 3);
+            grad.addColorStop(0, 'rgba(255,255,255,0.3)');
+            grad.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(ball.x - ball.r * 3, ball.y - ball.r * 3, ball.r * 6, ball.r * 6);
+            
+            // Ball
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff';
+            ctx.shadowColor = '#fff';
+            ctx.shadowBlur = 20;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            
+            // Paddles
+            ctx.fillStyle = '#fff';
+            ctx.shadowColor = '#fff';
+            ctx.shadowBlur = 15;
+            ctx.fillRect(p1.x, p1.y, p1.w, p1.h);
+            ctx.fillRect(p2.x, p2.y, p2.w, p2.h);
+            ctx.shadowBlur = 0;
+        }
+        
+        const keys = {};
+        document.addEventListener('keydown', e => {
+            keys[e.key] = true;
+            if (e.key === 'w' || e.key === 'W') p1.vy = -8;
+            if (e.key === 's' || e.key === 'S') p1.vy = 8;
+            if (e.key === 'ArrowUp') p2.vy = -8;
+            if (e.key === 'ArrowDown') p2.vy = 8;
+        });
+        document.addEventListener('keyup', e => {
+            keys[e.key] = false;
+            if ((e.key === 'w' || e.key === 'W') && p1.vy < 0) p1.vy = 0;
+            if ((e.key === 's' || e.key === 'S') && p1.vy > 0) p1.vy = 0;
+            if (e.key === 'ArrowUp' && p2.vy < 0) p2.vy = 0;
+            if (e.key === 'ArrowDown' && p2.vy > 0) p2.vy = 0;
+        });
+        
+        reset();
+        draw();
+    </script>
+</body>
+</html>
