@@ -2,13 +2,20 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0a0a0a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>TSN Arcade</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        html {
+            touch-action: manipulation;
         }
         body {
             background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
@@ -17,24 +24,26 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 40px 20px;
+            padding: 20px 15px;
             overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
         }
         .container {
             text-align: center;
             z-index: 10;
             max-width: 1400px;
+            width: 100%;
         }
         h1 {
-            font-size: 4rem;
-            margin-bottom: 10px;
+            font-size: clamp(2rem, 8vw, 4rem);
+            margin-bottom: 8px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
             text-shadow: none;
             filter: drop-shadow(0 0 30px rgba(102, 126, 234, 0.5));
-            letter-spacing: 8px;
+            letter-spacing: clamp(2px, 2vw, 8px);
             animation: glow 2s ease-in-out infinite alternate;
         }
         @keyframes glow {
@@ -43,38 +52,52 @@
         }
         .subtitle {
             color: rgba(255, 255, 255, 0.5);
-            font-size: 1.2rem;
-            letter-spacing: 4px;
-            margin-bottom: 50px;
+            font-size: clamp(0.8rem, 3vw, 1.2rem);
+            letter-spacing: clamp(2px, 1vw, 4px);
+            margin-bottom: 30px;
             text-transform: uppercase;
         }
         .category {
-            margin-bottom: 40px;
+            margin-bottom: 30px;
         }
         .category-title {
             color: rgba(255, 255, 255, 0.4);
-            font-size: 0.9rem;
+            font-size: clamp(0.7rem, 2.5vw, 0.9rem);
             letter-spacing: 3px;
             text-transform: uppercase;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             text-align: left;
             padding-left: 10px;
             border-left: 3px solid var(--cat-color, #667eea);
         }
         .games {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 25px;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
             justify-items: center;
         }
+        @media (max-width: 480px) {
+            .games {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+        }
+        @media (min-width: 768px) {
+            .games {
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 20px;
+            }
+        }
         .game-card {
-            width: 220px;
-            height: 280px;
+            width: 100%;
+            max-width: 220px;
+            height: auto;
+            min-height: 200px;
             background: linear-gradient(145deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 100%);
-            border-radius: 20px;
-            padding: 25px;
+            border-radius: 16px;
+            padding: 20px 15px;
             cursor: pointer;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             border: 1px solid rgba(255, 255, 255, 0.1);
             position: relative;
             overflow: hidden;
@@ -82,6 +105,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            touch-action: manipulation;
         }
         .game-card::before {
             content: '';
@@ -92,18 +116,18 @@
             bottom: 0;
             background: linear-gradient(135deg, var(--card-color1) 0%, var(--card-color2) 100%);
             opacity: 0;
-            transition: opacity 0.4s;
+            transition: opacity 0.3s;
             z-index: -1;
-            border-radius: 20px;
+            border-radius: 16px;
         }
-        .game-card:hover {
-            transform: translateY(-8px) scale(1.02);
+        .game-card:hover, .game-card:active {
+            transform: translateY(-5px) scale(1.02);
             border-color: rgba(255, 255, 255, 0.3);
             box-shadow: 
-                0 20px 60px rgba(0, 0, 0, 0.4),
-                0 0 40px var(--glow-color);
+                0 15px 40px rgba(0, 0, 0, 0.4),
+                0 0 30px var(--glow-color);
         }
-        .game-card:hover::before {
+        .game-card:hover::before, .game-card:active::before {
             opacity: 0.15;
         }
         
@@ -121,46 +145,62 @@
         .game-card.civ { --card-color1: #ffd700; --card-color2: #cc9900; --glow-color: rgba(255, 215, 0, 0.4); }
         
         .game-icon {
-            font-size: 4rem;
-            margin-bottom: 15px;
+            font-size: clamp(2.5rem, 10vw, 4rem);
+            margin-bottom: 10px;
             filter: drop-shadow(0 0 15px var(--glow-color));
             transition: transform 0.3s;
         }
-        .game-card:hover .game-icon {
-            transform: scale(1.15);
+        .game-card:hover .game-icon, .game-card:active .game-icon {
+            transform: scale(1.1);
         }
         .game-title {
             color: white;
-            font-size: 1.4rem;
+            font-size: clamp(1rem, 4vw, 1.4rem);
             font-weight: bold;
-            margin-bottom: 8px;
-            letter-spacing: 2px;
+            margin-bottom: 6px;
+            letter-spacing: 1px;
         }
         .game-desc {
             color: rgba(255, 255, 255, 0.5);
-            font-size: 0.8rem;
-            line-height: 1.4;
-            margin-bottom: 15px;
+            font-size: clamp(0.7rem, 2.5vw, 0.85rem);
+            line-height: 1.3;
+            margin-bottom: 12px;
             flex-grow: 1;
+            display: none;
+        }
+        @media (min-width: 480px) {
+            .game-desc {
+                display: block;
+            }
         }
         .play-btn {
             margin-top: auto;
             background: linear-gradient(135deg, var(--card-color1) 0%, var(--card-color2) 100%);
             border: none;
             color: #0a0a0a;
-            padding: 10px 28px;
-            border-radius: 16px;
-            font-size: 0.85rem;
+            padding: 8px 20px;
+            border-radius: 12px;
+            font-size: clamp(0.7rem, 3vw, 0.85rem);
             font-weight: bold;
-            letter-spacing: 2px;
+            letter-spacing: 1px;
             text-transform: uppercase;
             pointer-events: none;
-            opacity: 0.8;
+            opacity: 0.9;
             transition: all 0.3s;
         }
-        .game-card:hover .play-btn {
+        .game-card:hover .play-btn, .game-card:active .play-btn {
             opacity: 1;
-            box-shadow: 0 0 25px var(--glow-color);
+            box-shadow: 0 0 20px var(--glow-color);
+        }
+        
+        /* Touch device optimizations */
+        @media (hover: none) {
+            .game-card:hover {
+                transform: none;
+            }
+            .game-card:active {
+                transform: scale(0.98);
+            }
         }
         
         /* Floating particles */
@@ -174,7 +214,7 @@
             z-index: 1;
         }
         
-        /* Scanlines effect */
+        /* Scanlines effect - reduced on mobile */
         .scanlines {
             position: fixed;
             top: 0;
@@ -190,7 +230,12 @@
                 transparent 1px,
                 transparent 3px
             );
-            opacity: 0.3;
+            opacity: 0.2;
+        }
+        @media (max-width: 768px) {
+            .scanlines {
+                opacity: 0.1;
+            }
         }
         
         /* CRT curve effect */
@@ -206,20 +251,35 @@
         }
         
         .footer {
-            margin-top: 40px;
+            margin-top: 30px;
             color: rgba(255, 255, 255, 0.3);
-            font-size: 0.8rem;
+            font-size: clamp(0.7rem, 2.5vw, 0.8rem);
             letter-spacing: 2px;
+            text-align: center;
         }
         
         .game-count {
             color: rgba(255, 255, 255, 0.3);
-            font-size: 0.9rem;
-            margin-bottom: 30px;
+            font-size: clamp(0.8rem, 3vw, 0.9rem);
+            margin-bottom: 20px;
         }
         .game-count span {
             color: #667eea;
             font-weight: bold;
+        }
+        
+        /* Mobile hint */
+        .mobile-hint {
+            display: block;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.75rem;
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+        @media (min-width: 768px) {
+            .mobile-hint {
+                display: none;
+            }
         }
     </style>
 </head>
@@ -232,6 +292,7 @@
         <h1>TSN ARCADE</h1>
         <p class="subtitle">Select Your Game</p>
         <p class="game-count"><span>11</span> Games Available</p>
+        <p class="mobile-hint">📱 All games support touch controls!</p>
         
         <!-- Featured Games -->
         <div class="category" style="--cat-color: #ffd700;">
@@ -337,9 +398,10 @@
     <div class="footer">PRESS START TO PLAY • TSN ARCADE 2026</div>
     
     <script>
-        // Particle background
+        // Particle background - reduced on mobile
         const canvas = document.getElementById('particles');
         const ctx = canvas.getContext('2d');
+        const isMobile = window.matchMedia('(max-width: 768px)').matches;
         
         function resize() {
             canvas.width = window.innerWidth;
@@ -350,8 +412,9 @@
         
         const particles = [];
         const colors = ['#667eea', '#764ba2', '#f093fb', '#00ff88', '#ff6b6b', '#00d4ff', '#f2b179'];
+        const particleCount = isMobile ? 30 : 80;
         
-        for (let i = 0; i < 80; i++) {
+        for (let i = 0; i < particleCount; i++) {
             particles.push({
                 x: Math.random() * canvas.width,
                 y: Math.random() * canvas.height,
@@ -363,7 +426,15 @@
             });
         }
         
+        let frameCount = 0;
         function animate() {
+            frameCount++;
+            // Skip frames on mobile for performance
+            if (isMobile && frameCount % 2 !== 0) {
+                requestAnimationFrame(animate);
+                return;
+            }
+            
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
             particles.forEach((p, i) => {
@@ -381,22 +452,24 @@
                 ctx.globalAlpha = p.alpha;
                 ctx.fill();
                 
-                // Draw connections
-                particles.forEach((p2, j) => {
-                    if (i === j) return;
-                    const dx = p.x - p2.x;
-                    const dy = p.y - p2.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    
-                    if (dist < 100) {
-                        ctx.beginPath();
-                        ctx.moveTo(p.x, p.y);
-                        ctx.lineTo(p2.x, p2.y);
-                        ctx.strokeStyle = p.color;
-                        ctx.globalAlpha = (1 - dist / 100) * 0.12;
-                        ctx.stroke();
-                    }
-                });
+                // Draw connections - fewer on mobile
+                if (!isMobile || i % 3 === 0) {
+                    particles.forEach((p2, j) => {
+                        if (i === j) return;
+                        const dx = p.x - p2.x;
+                        const dy = p.y - p2.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (dist < 100) {
+                            ctx.beginPath();
+                            ctx.moveTo(p.x, p.y);
+                            ctx.lineTo(p2.x, p2.y);
+                            ctx.strokeStyle = p.color;
+                            ctx.globalAlpha = (1 - dist / 100) * 0.12;
+                            ctx.stroke();
+                        }
+                    });
+                }
             });
             
             ctx.globalAlpha = 1;
@@ -404,26 +477,28 @@
         }
         animate();
         
-        // Add hover sound effect
-        const cards = document.querySelectorAll('.game-card');
-        cards.forEach(card => {
-            card.addEventListener('mouseenter', () => {
-                try {
-                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(500, ctx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(700, ctx.currentTime + 0.08);
-                    gain.gain.setValueAtTime(0.08, ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
-                    osc.start();
-                    osc.stop(ctx.currentTime + 0.08);
-                } catch(e) {}
+        // Sound effect on tap/click - only on non-touch devices
+        if (!isMobile) {
+            const cards = document.querySelectorAll('.game-card');
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', () => {
+                    try {
+                        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(500, ctx.currentTime);
+                        osc.frequency.exponentialRampToValueAtTime(700, ctx.currentTime + 0.08);
+                        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start();
+                        osc.stop(ctx.currentTime + 0.08);
+                    } catch(e) {}
+                });
             });
-        });
+        }
     </script>
 </body>
 </html>
