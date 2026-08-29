@@ -143,6 +143,7 @@
         .game-card.minesweeper { --card-color1: #808080; --card-color2: #606060; --glow-color: rgba(128, 128, 128, 0.3); }
         .game-card.roguelike { --card-color1: #ff4444; --card-color2: #aa2222; --glow-color: rgba(255, 68, 68, 0.4); }
         .game-card.civ { --card-color1: #ffd700; --card-color2: #cc9900; --glow-color: rgba(255, 215, 0, 0.4); }
+        .game-card.drive { --card-color1: #ff3333; --card-color2: #cc0000; --glow-color: rgba(255, 51, 51, 0.4); }
         
         .game-icon {
             font-size: clamp(2.5rem, 10vw, 4rem);
@@ -291,13 +292,19 @@
     <div class="container">
         <h1>TSN ARCADE</h1>
         <p class="subtitle">Select Your Game</p>
-        <p class="game-count"><span>11</span> Games Available</p>
+        <p class="game-count"><span>12</span> Games Available</p>
         <p class="mobile-hint">📱 All games support touch controls!</p>
         
         <!-- Featured Games -->
         <div class="category" style="--cat-color: #ffd700;">
             <div class="category-title">⭐ Featured</div>
             <div class="games">
+                <a href="drive.html" class="game-card drive">
+                    <div class="game-icon">🏎️</div>
+                    <div class="game-title">TSN DRIVE</div>
+                    <p class="game-desc">3D-style racing! Dodge traffic, build speed, survive the highway!</p>
+                    <div class="play-btn">Play</div>
+                </a>
                 <a href="civ.html" class="game-card civ">
                     <div class="game-icon">🏛️</div>
                     <div class="game-title">HEGEMONY</div>
