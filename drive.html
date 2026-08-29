@@ -37,267 +37,267 @@ import * as THREE from 'three';
 
 const canvas=document.getElementById('gameCanvas');
 
-// Scene
+// Scene with sunset fog
 const scene=new THREE.Scene();
-const fogColor=new THREE.Color(0x1a0033);
-scene.fog=new THREE.Fog(fogColor,20,180);
+const fogColor=new THREE.Color(0x2a0a20);
+scene.fog=new THREE.Fog(fogColor,30,220);
 scene.background=fogColor;
 
 // Camera
 const camera=new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,0.1,1000);
-camera.position.set(0,4,8);
-camera.lookAt(0,0,-20);
+camera.position.set(0,4.5,9);
 
 // Renderer
-const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:"high-performance"});
 renderer.setSize(window.innerWidth,window.innerHeight);
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.1;
 
-// Lights
-const ambient=new THREE.AmbientLight(0xffaa00,0.3);
+// Ambient + sunset sun
+const ambient=new THREE.AmbientLight(0xff8844,0.25);
 scene.add(ambient);
 
-const sun=new THREE.DirectionalLight(0xff6600,1.5);
-sun.position.set(30,20,-80);
+const sun=new THREE.DirectionalLight(0xff6622,2.0);
+sun.position.set(40,25,-100);
 sun.castShadow=true;
-sun.shadow.mapSize.width=2048;
-sun.shadow.mapSize.height=2048;
-sun.shadow.camera.near=0.5;
-sun.shadow.camera.far=200;
-sun.shadow.camera.left=-50;
-sun.shadow.camera.right=50;
-sun.shadow.camera.top=50;
-sun.shadow.camera.bottom=-50;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.set({left:-60,right:60,top:60,bottom:-60,near:1,far:300});
 scene.add(sun);
 
-// Sunset sky dome
-const skyGeo=new THREE.SphereGeometry(400,32,32);
-const skyMat=new THREE.ShaderMaterial({
-uniforms:{topColor:{value:new THREE.Color(0x0a0014)},bottomColor:{value:new THREE.Color(0xff6600)},offset:{value:33},exponent:{value:0.6}},
-vertexShader:`varying vec3 vWorldPosition;void main(){vec4 worldPosition=modelMatrix*vec4(position,1.0);vWorldPosition=worldPosition.xyz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
-fragmentShader:`uniform vec3 topColor;uniform vec3 bottomColor;uniform float offset;uniform float exponent;varying vec3 vWorldPosition;void main(){float h=normalize(vWorldPosition+offset).y;gl_FragColor=vec4(mix(bottomColor,topColor,max(pow(max(h,0.0),exponent),0.0)),1.0);}`,
+// Rim light for dramatic car edges
+const rimLight=new THREE.DirectionalLight(0x8866ff,0.6);
+rimLight.position.set(-40,10,20);
+scene.add(rimLight);
+
+// Sky dome gradient
+const sky=new THREE.Mesh(new THREE.SphereGeometry(500,32,32),new THREE.ShaderMaterial({
+uniforms:{top:{value:new THREE.Color(0x080020)},mid:{value:new THREE.Color(0x661144)},bot:{value:new THREE.Color(0xff6600)}},
+vertexShader:'varying vec3 v;void main(){v=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+fragmentShader:'uniform vec3 top,mid,bot;varying vec3 v;void main(){float y=normalize(v).y;vec3 c=mix(bot,mid,smoothstep(-0.2,0.3,y));c=mix(c,top,smoothstep(0.3,0.8,y));gl_FragColor=vec4(c,1.0);}',
 side:THREE.BackSide
-});
-scene.add(new THREE.Mesh(skyGeo,skyMat));
+}));
+scene.add(sky);
 
-// Sun visual
-const sunGeo=new THREE.SphereGeometry(8,32,32);
-const sunMat=new THREE.MeshBasicMaterial({color:0xffaa00});
-const sunMesh=new THREE.Mesh(sunGeo,sunMat);
-sunMesh.position.set(30,8,-120);
-scene.add(sunMesh);
+// Sun glow
+const sunSprite=new THREE.Mesh(new THREE.SphereGeometry(10,32,32),new THREE.MeshBasicMaterial({color:0xffaa00}));
+sunSprite.position.set(40,12,-140);
+scene.add(sunSprite);
+const sunGlow=new THREE.Mesh(new THREE.SphereGeometry(25,32,32),new THREE.MeshBasicMaterial({color:0xff6600,transparent:true,opacity:0.15}));
+sunGlow.position.copy(sunSprite.position);
+scene.add(sunGlow);
 
-// Ground
-const groundGeo=new THREE.PlaneGeometry(500,500);
-const groundMat=new THREE.MeshLambertMaterial({color:0x1a0a05});
-const ground=new THREE.Mesh(groundGeo,groundMat);
-ground.rotation.x=-Math.PI/2;
-ground.position.y=-0.1;
-ground.receiveShadow=true;
-scene.add(ground);
+// Clean road: raised asphalt with curbs
+const roadGroup=new THREE.Group();
+const asphalt=new THREE.Mesh(new THREE.PlaneGeometry(14,500),new THREE.MeshStandardMaterial({color:0x222222,roughness:0.9}));
+asphalt.rotation.x=-Math.PI/2;asphalt.receiveShadow=true;roadGroup.add(asphalt);
 
-// Road
-const roadGeo=new THREE.PlaneGeometry(16,500);
-const roadMat=new THREE.MeshLambertMaterial({color:0x222222});
-const road=new THREE.Mesh(roadGeo,roadMat);
-road.rotation.x=-Math.PI/2;
-road.receiveShadow=true;
-scene.add(road);
+const curbMat=new THREE.MeshStandardMaterial({color:0xcc3333,roughness:0.6});
+const curbLeft=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.2,500),curbMat);
+curbLeft.position.set(-7.2,0.1,0);curbLeft.castShadow=true;curbLeft.receiveShadow=true;roadGroup.add(curbLeft);
+const curbRight=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.2,500),curbMat);
+curbRight.position.set(7.2,0.1,0);curbRight.castShadow=true;curbRight.receiveShadow=true;roadGroup.add(curbRight);
 
-// Road markings
-const markings=[];
-for(let i=0;i<30;i++){
-const mGeo=new THREE.PlaneGeometry(0.3,4);
-const mMat=new THREE.MeshBasicMaterial({color:0xffffff});
-const m=new THREE.Mesh(mGeo,mMat);
-m.rotation.x=-Math.PI/2;
-m.position.y=0.01;
-m.position.z=-i*18;
-scene.add(m);
-markings.push(m);
-}
+const shoulderMat=new THREE.MeshStandardMaterial({color:0x332211,roughness:1});
+const shoulderLeft=new THREE.Mesh(new THREE.PlaneGeometry(4,500),shoulderMat);
+shoulderLeft.rotation.x=-Math.PI/2;shoulderLeft.position.set(-9.4,-0.05,0);shoulderLeft.receiveShadow=true;roadGroup.add(shoulderLeft);
+const shoulderRight=new THREE.Mesh(new THREE.PlaneGeometry(4,500),shoulderMat);
+shoulderRight.rotation.x=-Math.PI/2;shoulderRight.position.set(9.4,-0.05,0);shoulderRight.receiveShadow=true;roadGroup.add(shoulderRight);
 
-// Mountains
+scene.add(roadGroup);
+
+// Lane markings
+const marks=[];
+const markMat=new THREE.MeshBasicMaterial({color:0xffffff});
 for(let i=0;i<40;i++){
-const h=5+Math.random()*15;
-const w=8+Math.random()*20;
-const mtGeo=new THREE.ConeGeometry(w,h,4);
-const mtMat=new THREE.MeshLambertMaterial({color:new THREE.Color().setHSL(0.75,0.2,0.1+Math.random()*0.1)});
-const mt=new THREE.Mesh(mtGeo,mtMat);
-mt.position.set((Math.random()-0.5)*180,-0.5,-30-Math.random()*150);
-scene.add(mt);
+const m=new THREE.Mesh(new THREE.PlaneGeometry(0.25,5),markMat);
+m.rotation.x=-Math.PI/2;m.position.y=0.02;m.position.z=-i*14;
+roadGroup.add(m);marks.push(m);
 }
 
-// Player car
-function makeCar(color,headlights=false){
+// Scenery pool: rocks, cacti, light poles
+const scenery=[];
+const rockGeo=new THREE.DodecahedronGeometry(1,0);
+const rockMat=new THREE.MeshStandardMaterial({color:0x553322,roughness:0.9});
+const cactusGeo=new THREE.CapsuleGeometry(0.4,2,4,8);
+const cactusMat=new THREE.MeshStandardMaterial({color:0x226622,roughness:0.8});
+const poleGeo=new THREE.CylinderGeometry(0.08,0.08,6,8);
+const poleMat=new THREE.MeshStandardMaterial({color:0x444444,metalness:0.7,roughness:0.3});
+const lightGeo=new THREE.BoxGeometry(0.5,0.2,0.2);
+const lightMat=new THREE.MeshBasicMaterial({color:0xffffaa});
+
+function makeScenery(z){
+const side=Math.random()>0.5?1:-1;
+const x=(9+Math.random()*15)*side;
+const type=Math.random();
+let obj;
+if(type<0.45){
+obj=new THREE.Mesh(rockGeo,rockMat);
+const s=1+Math.random()*2;
+obj.scale.set(s,s,s);obj.position.set(x,s*0.5,z);
+}else if(type<0.75){
+obj=new THREE.Mesh(cactusGeo,cactusMat);
+const s=0.8+Math.random()*1.2;
+obj.scale.set(s,s,s);obj.position.set(x,s,z);
+}else{
+obj=new THREE.Group();
+const pole=new THREE.Mesh(poleGeo,poleMat);
+pole.position.y=3;obj.add(pole);
+const arm=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.15,2),poleMat);
+arm.position.set(-0.7*side,5.8,0);obj.add(arm);
+const light=new THREE.Mesh(lightGeo,lightMat);
+light.position.set(-1.3*side,5.8,0);obj.add(light);
+const spot=new THREE.PointLight(0xffffaa,1,15);
+spot.position.set(-1.3*side,5.5,0);obj.add(spot);
+obj.position.set(x,0,z);
+}
+obj.castShadow=true;obj.receiveShadow=true;
+scene.add(obj);scenery.push(obj);
+}
+
+for(let i=0;i<30;i++)makeScenery(-10-i*12);
+
+// Car builder with nicer shape
+function makeCar(color,hasHeadlights=false){
 const car=new THREE.Group();
 
-const bodyGeo=new THREE.BoxGeometry(1.8,0.6,3.5);
-const bodyMat=new THREE.MeshStandardMaterial({color:color,metalness:0.6,roughness:0.3});
-const body=new THREE.Mesh(bodyGeo,bodyMat);
-body.position.y=0.6;
-body.castShadow=true;
-car.add(body);
+// Lower body
+const body=new THREE.Mesh(new THREE.BoxGeometry(1.9,0.55,4),new THREE.MeshStandardMaterial({color:color,metalness:0.65,roughness:0.25}));
+body.position.y=0.6;body.castShadow=true;car.add(body);
 
-const cabinGeo=new THREE.BoxGeometry(1.4,0.5,1.8);
-const cabinMat=new THREE.MeshStandardMaterial({color:0x111111,metalness:0.8,roughness:0.2});
-const cabin=new THREE.Mesh(cabinGeo,cabinMat);
-cabin.position.y=1.1;
-cabin.position.z=-0.2;
-cabin.castShadow=true;
-car.add(cabin);
+// Upper cabin
+const cabin=new THREE.Mesh(new THREE.BoxGeometry(1.5,0.5,2.2),new THREE.MeshStandardMaterial({color:0x111111,metalness:0.7,roughness:0.2}));
+cabin.position.set(0,1.05,-0.3);cabin.castShadow=true;car.add(cabin);
 
-const wheelGeo=new THREE.CylinderGeometry(0.35,0.35,0.3,16);
-const wheelMat=new THREE.MeshStandardMaterial({color:0x111111});
-const positions=[[-0.9,0.35,1.1],[0.9,0.35,1.1],[-0.9,0.35,-1.1],[0.9,0.35,-1.1]];
-positions.forEach(p=>{
-const w=new THREE.Mesh(wheelGeo,wheelMat);
-w.rotation.z=Math.PI/2;
-w.position.set(...p);
-w.castShadow=true;
-car.add(w);
+// Glass
+const glass=new THREE.Mesh(new THREE.PlaneGeometry(1.3,0.35),new THREE.MeshStandardMaterial({color:0x3366aa,metalness:0.9,roughness:0.05,transparent:true,opacity:0.7}));
+glass.position.set(0,1.1,0.81);glass.rotation.x=-0.1;car.add(glass);
+
+// Spoiler
+const spoiler=new THREE.Mesh(new THREE.BoxGeometry(1.6,0.1,0.6),new THREE.MeshStandardMaterial({color:color,metalness:0.5,roughness:0.3}));
+spoiler.position.set(0,1.0,-1.8);car.add(spoiler);
+
+// Wheels
+const wGeo=new THREE.CylinderGeometry(0.35,0.35,0.3,20);
+const wMat=new THREE.MeshStandardMaterial({color:0x111111,roughness:0.9});
+[[-0.95,0.35,1.1],[0.95,0.35,1.1],[-0.95,0.35,-1.1],[0.95,0.35,-1.1]].forEach(p=>{
+const w=new THREE.Mesh(wGeo,wMat);w.rotation.z=Math.PI/2;w.position.set(...p);w.castShadow=true;car.add(w);
 });
 
-if(headlights){
-const lightGeo=new THREE.SphereGeometry(0.15,8,8);
-const lightMat=new THREE.MeshBasicMaterial({color:0xffffaa});
-const l1=new THREE.Mesh(lightGeo,lightMat);
-l1.position.set(-0.6,0.6,1.75);
-car.add(l1);
-const l2=new THREE.Mesh(lightGeo,lightMat);
-l2.position.set(0.6,0.6,1.75);
-car.add(l2);
-
-const spot=new THREE.SpotLight(0xffffaa,2,40,0.5,0.5,1);
-spot.position.set(0,1,2);
-spot.target.position.set(0,0,10);
-car.add(spot);
-car.add(spot.target);
+if(hasHeadlights){
+const hlMat=new THREE.MeshBasicMaterial({color:0xffffcc});
+[[-0.6,0.55,2.0],[0.6,0.55,2.0]].forEach(p=>{
+const hl=new THREE.Mesh(new THREE.SphereGeometry(0.12,12,12),hlMat);hl.position.set(...p);car.add(hl);
+});
+const sl=new THREE.SpotLight(0xffffcc,3,45,0.5,0.4,1);
+sl.position.set(0,0.8,2.2);sl.target.position.set(0,0,10);car.add(sl);car.add(sl.target);
 }
+
+// Tail lights
+const tlMat=new THREE.MeshBasicMaterial({color:0xff0000});
+[[-0.6,0.55,-2.0],[0.6,0.55,-2.0]].forEach(p=>{
+const tl=new THREE.Mesh(new THREE.BoxGeometry(0.25,0.12,0.05),tlMat);tl.position.set(...p);car.add(tl);
+});
 
 return car;
 }
 
 const player=makeCar(0xff3333,true);
-player.position.set(0,0,0);
 scene.add(player);
 
 // Traffic
 let traffic=[];
-const trafficColors=[0x4488ff,0xffaa00,0xff44ff,0x44ff88,0xffffff,0xff6666];
+const colors=[0x4488ff,0xffaa00,0xff44ff,0x44ff88,0xffffff,0xff6666];
 function spawnTraffic(){
-const lane=(Math.floor(Math.random()*3)-1)*5;
-const car=makeCar(trafficColors[Math.floor(Math.random()*trafficColors.length)],false);
-car.position.set(lane,0,-80-Math.random()*40);
-car.userData.speed=40+Math.random()*50;
-scene.add(car);
-traffic.push(car);
+const lane=(Math.floor(Math.random()*3)-1)*4.5;
+const car=makeCar(colors[Math.floor(Math.random()*colors.length)],false);
+car.position.set(lane,0,-90-Math.random()*50);
+car.userData.speed=45+Math.random()*55;
+scene.add(car);traffic.push(car);
 }
 
 // Game state
-let gameRunning=true;
-let score=0;
-let speed=0;
-let maxSpeed=180;
-let roadCurve=0;
-let curveTarget=0;
-let dist=0;
+let gameRunning=true,score=0,speed=0,maxSpeed=200,dist=0,roadCurve=0,curveTarget=0;
 const keys={};
-
 window.addEventListener('keydown',e=>{keys[e.key]=true;if(e.key==='r'||e.key==='R')restartGame();});
 window.addEventListener('keyup',e=>keys[e.key]=false);
-window.addEventListener('resize',()=>{
-camera.aspect=window.innerWidth/window.innerHeight;
-camera.updateProjectionMatrix();
-renderer.setSize(window.innerWidth,window.innerHeight);
-});
+window.addEventListener('resize',()=>{camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight);});
+
+// Speed particles
+const particleGeo=new THREE.BufferGeometry();
+const particleCount=200;
+const posArr=new Float32Array(particleCount*3);
+for(let i=0;i<particleCount*3;i++)posArr[i]=(Math.random()-0.5)*30;
+particleGeo.setAttribute('position',new THREE.BufferAttribute(posArr,3));
+const particleMat=new THREE.PointsMaterial({color:0xffffaa,size:0.15,transparent:true,opacity:0.6});
+const particles=new THREE.Points(particleGeo,particleMat);
+particles.position.set(0,2,-10);scene.add(particles);
 
 function update(dt){
 if(!gameRunning)return;
 
-// Speed
-if(keys['ArrowUp']||keys['w']||keys['W'])speed+=40*dt;
-else if(keys['ArrowDown']||keys['s']||keys['S'])speed-=80*dt;
-else speed-=20*dt;
+// Speed control
+if(keys['ArrowUp']||keys['w']||keys['W'])speed+=45*dt;
+else if(keys['ArrowDown']||keys['s']||keys['S'])speed-=90*dt;
+else speed-=22*dt;
 speed=Math.max(0,Math.min(speed,maxSpeed));
 
-// Steering
+// Steering with body lean
 let steer=0;
 if(speed>5){
-if(keys['ArrowLeft']||keys['a']||keys['A']){player.position.x-=15*dt;steer=0.15;}
-if(keys['ArrowRight']||keys['d']||keys['D']){player.position.x+=15*dt;steer=-0.15;}
+if(keys['ArrowLeft']||keys['a']||keys['A']){player.position.x-=16*dt;steer=0.12;}
+if(keys['ArrowRight']||keys['d']||keys['D']){player.position.x+=16*dt;steer=-0.12;}
 }
-player.rotation.z=THREE.MathUtils.lerp(player.rotation.z,steer,0.1);
-player.rotation.y=THREE.MathUtils.lerp(player.rotation.y,steer*0.5,0.05);
-
-// Boundaries
-player.position.x=Math.max(-7,Math.min(7,player.position.x));
+player.position.x=Math.max(-6.2,Math.min(6.2,player.position.x));
+player.rotation.z=THREE.MathUtils.lerp(player.rotation.z,steer,0.12);
+player.rotation.y=THREE.MathUtils.lerp(player.rotation.y,steer*0.4,0.06);
 
 // Move world
 const move=speed*dt;
 dist+=move;
 roadCurve+=(curveTarget-roadCurve)*0.02;
-curveTarget=Math.sin(dist*0.01)*2;
+curveTarget=Math.sin(dist*0.008)*2.5;
 
-// Move road markings
-markings.forEach(m=>{
-m.position.z+=move;
-if(m.position.z>10)m.position.z-=540;
-});
+// Road markings
+marks.forEach(m=>{m.position.z+=move;if(m.position.z>10)m.position.z-=560;});
 
-// Move mountains to create endless feel
-scene.children.forEach(c=>{
-if(c.geometry&&c.geometry.type==='ConeGeometry'){
-c.position.z+=move*0.8;
-if(c.position.z>10){
-c.position.z-=150;
-c.position.x=(Math.random()-0.5)*180;
-}
-}
-});
+// Scenery
+scenery.forEach(s=>{s.position.z+=move;if(s.position.z>15){s.position.z-=360;makeScenery(s.position.z);scene.remove(s);scenery.splice(scenery.indexOf(s),1);}});
 
-// Spawn traffic
-if(Math.random()<0.015*speed/maxSpeed)spawnTraffic();
-
-// Update traffic
+// Traffic
+if(Math.random()<0.018*speed/maxSpeed)spawnTraffic();
 for(let i=traffic.length-1;i>=0;i--){
-const car=traffic[i];
-car.position.z+=move-car.userData.speed*dt;
-
-if(car.position.z>10){
-scene.remove(car);
-traffic.splice(i,1);
-score+=Math.floor(speed/10);
-continue;
+const c=traffic[i];
+c.position.z+=move-c.userData.speed*dt;
+if(c.position.z>10){scene.remove(c);traffic.splice(i,1);score+=Math.floor(speed/8);continue;}
+if(Math.abs(player.position.x-c.position.x)<1.8&&Math.abs(player.position.z-c.position.z)<3.2)gameOver();
 }
 
-// Collision
-if(Math.abs(player.position.x-car.position.x)<1.8&&Math.abs(player.position.z-car.position.z)<3){
-gameOver();
-}
-}
-
-score+=Math.floor(speed/50);
+score+=Math.floor(speed/45);
 document.getElementById('speed').textContent=Math.floor(speed);
 document.getElementById('scoreValue').textContent=score;
 
 // Camera follow
-const targetX=player.position.x*0.4+roadCurve*2;
+const targetX=player.position.x*0.35+roadCurve*2;
 camera.position.x=THREE.MathUtils.lerp(camera.position.x,targetX,0.05);
-camera.position.z=player.position.z+8;
-camera.lookAt(player.position.x*0.3,0,player.position.z-20);
+camera.position.z=player.position.z+8.5;
+camera.position.y=4.5+speed/maxSpeed*0.5;
+camera.lookAt(player.position.x*0.2,0.5,player.position.z-25);
 
-// Road follows player visually
-road.position.z=player.position.z-50;
+// Speed particles
+const positions=particles.geometry.attributes.position.array;
+for(let i=0;i<particleCount;i++){
+positions[i*3+2]+=move*2+0.5;
+if(positions[i*3+2]>10){positions[i*3+2]=-30;positions[i*3]=(Math.random()-0.5)*20;positions[i*3+1]=(Math.random()-0.5)*10;}
+}
+particles.geometry.attributes.position.needsUpdate=true;
+particles.visible=speed>60;
+
+roadGroup.position.z=player.position.z-50;
 }
 
-function gameOver(){
-gameRunning=false;
-document.getElementById('finalScore').textContent=score;
-document.getElementById('gameOver').style.display='block';
-}
-
+function gameOver(){gameRunning=false;document.getElementById('finalScore').textContent=score;document.getElementById('gameOver').style.display='block';}
 function restartGame(){
 gameRunning=true;score=0;speed=0;dist=0;roadCurve=0;curveTarget=0;
 player.position.set(0,0,0);player.rotation.set(0,0,0);
@@ -307,11 +307,7 @@ document.getElementById('gameOver').style.display='none';
 window.restartGame=restartGame;
 
 const clock=new THREE.Clock();
-function animate(){
-requestAnimationFrame(animate);
-update(clock.getDelta());
-renderer.render(scene,camera);
-}
+function animate(){requestAnimationFrame(animate);update(clock.getDelta());renderer.render(scene,camera);}
 animate();
 </script>
 </body>
