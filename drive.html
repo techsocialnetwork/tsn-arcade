@@ -66,7 +66,13 @@ const sun=new THREE.DirectionalLight(0xff6622,3.5);
 sun.position.set(40,35,-100);
 sun.castShadow=true;
 sun.shadow.mapSize.set(2048,2048);
-sun.shadow.camera.set({left:-60,right:60,top:60,bottom:-60,near:1,far:300});
+sun.shadow.camera.left=-60;
+sun.shadow.camera.right=60;
+sun.shadow.camera.top=60;
+sun.shadow.camera.bottom=-60;
+sun.shadow.camera.near=1;
+sun.shadow.camera.far=300;
+sun.shadow.camera.updateProjectionMatrix();
 scene.add(sun);
 
 // Rim light for dramatic car edges
