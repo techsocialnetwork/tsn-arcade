@@ -39,7 +39,7 @@ const canvas=document.getElementById('gameCanvas');
 
 // Scene with sunset fog
 const scene=new THREE.Scene();
-const fogColor=new THREE.Color(0x2a0a20);
+const fogColor=new THREE.Color(0x4a2030);
 scene.fog=new THREE.Fog(fogColor,30,220);
 scene.background=fogColor;
 
@@ -53,27 +53,30 @@ renderer.setSize(window.innerWidth,window.innerHeight);
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.1;
+renderer.toneMappingExposure=1.8;
 
 // Ambient + sunset sun
-const ambient=new THREE.AmbientLight(0xff8844,0.25);
+const ambient=new THREE.AmbientLight(0xffaa66,0.8);
 scene.add(ambient);
 
-const sun=new THREE.DirectionalLight(0xff6622,2.0);
-sun.position.set(40,25,-100);
+const hemi=new THREE.HemisphereLight(0xff8844,0x442266,0.6);
+scene.add(hemi);
+
+const sun=new THREE.DirectionalLight(0xff6622,3.5);
+sun.position.set(40,35,-100);
 sun.castShadow=true;
 sun.shadow.mapSize.set(2048,2048);
 sun.shadow.camera.set({left:-60,right:60,top:60,bottom:-60,near:1,far:300});
 scene.add(sun);
 
 // Rim light for dramatic car edges
-const rimLight=new THREE.DirectionalLight(0x8866ff,0.6);
+const rimLight=new THREE.DirectionalLight(0x8866ff,1.2);
 rimLight.position.set(-40,10,20);
 scene.add(rimLight);
 
 // Sky dome gradient
 const sky=new THREE.Mesh(new THREE.SphereGeometry(500,32,32),new THREE.ShaderMaterial({
-uniforms:{top:{value:new THREE.Color(0x080020)},mid:{value:new THREE.Color(0x661144)},bot:{value:new THREE.Color(0xff6600)}},
+uniforms:{top:{value:new THREE.Color(0x201050)},mid:{value:new THREE.Color(0x992255)},bot:{value:new THREE.Color(0xff8800)}},
 vertexShader:'varying vec3 v;void main(){v=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
 fragmentShader:'uniform vec3 top,mid,bot;varying vec3 v;void main(){float y=normalize(v).y;vec3 c=mix(bot,mid,smoothstep(-0.2,0.3,y));c=mix(c,top,smoothstep(0.3,0.8,y));gl_FragColor=vec4(c,1.0);}',
 side:THREE.BackSide
@@ -84,13 +87,13 @@ scene.add(sky);
 const sunSprite=new THREE.Mesh(new THREE.SphereGeometry(10,32,32),new THREE.MeshBasicMaterial({color:0xffaa00}));
 sunSprite.position.set(40,12,-140);
 scene.add(sunSprite);
-const sunGlow=new THREE.Mesh(new THREE.SphereGeometry(25,32,32),new THREE.MeshBasicMaterial({color:0xff6600,transparent:true,opacity:0.15}));
+const sunGlow=new THREE.Mesh(new THREE.SphereGeometry(30,32,32),new THREE.MeshBasicMaterial({color:0xff6600,transparent:true,opacity:0.35}));
 sunGlow.position.copy(sunSprite.position);
 scene.add(sunGlow);
 
 // Clean road: raised asphalt with curbs
 const roadGroup=new THREE.Group();
-const asphalt=new THREE.Mesh(new THREE.PlaneGeometry(14,500),new THREE.MeshStandardMaterial({color:0x222222,roughness:0.9}));
+const asphalt=new THREE.Mesh(new THREE.PlaneGeometry(14,500),new THREE.MeshStandardMaterial({color:0x333333,roughness:0.9}));
 asphalt.rotation.x=-Math.PI/2;asphalt.receiveShadow=true;roadGroup.add(asphalt);
 
 const curbMat=new THREE.MeshStandardMaterial({color:0xcc3333,roughness:0.6});
